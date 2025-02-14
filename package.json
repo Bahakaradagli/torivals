@@ -1,0 +1,81 @@
+{
+  "name": "my-new-project",
+  "version": "1.0.3",
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-chart-kit",
+          "react-native-keyboard-aware-scroll-view",
+          "react-native-modal"
+        ]
+      }
+    }
+  },
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/datetimepicker": "8.2.0",
+    "@react-native-community/slider": "^4.5.5",
+    "@react-native-firebase/app": "^21.3.0",
+    "@react-native-firebase/firestore": "^21.3.0",
+    "@react-native-picker/picker": "2.9.0",
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/drawer": "^6.7.2",
+    "@react-navigation/material-top-tabs": "^6.6.14",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/stack": "^6.4.1",
+    "expo": "~52.0.20",
+    "expo-auth-session": "~6.0.1",
+    "expo-av": "~15.0.1",
+    "expo-camera": "~16.0.10",
+    "expo-clipboard": "~7.0.0",
+    "expo-dev-client": "~5.0.8",
+    "expo-file-system": "~18.0.4",
+    "expo-image-picker": "^16.0.3",
+    "expo-media-library": "~17.0.4",
+    "expo-screen-capture": "~7.0.0",
+    "expo-sharing": "~13.0.0",
+    "expo-status-bar": "~2.0.0",
+    "expo-system-ui": "~4.0.6",
+    "expo-video": "~2.0.3",
+    "faker": "^5.5.3",
+    "firebase": "^11.0.1",
+    "lottie-react-native": "^7.1.0",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "react-native-chart-kit": "^6.12.0",
+    "react-native-date-picker": "^5.0.7",
+    "react-native-dotenv": "^3.4.11",
+    "react-native-draggable": "^3.3.0",
+    "react-native-elements": "^3.4.3",
+    "react-native-gesture-handler": "~2.20.2",
+    "react-native-image-picker": "^7.1.2",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-modal": "^13.0.1",
+    "react-native-modal-datetime-picker": "^18.0.0",
+    "react-native-pager-view": "6.5.1",
+    "react-native-reanimated": "^3.16.6",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "^4.4.0",
+    "react-native-svg": "15.8.0",
+    "react-native-tab-view": "^3.5.2",
+    "react-native-vector-icons": "^10.2.0",
+    "react-native-video": "^6.8.2",
+    "react-native-view-shot": "~4.0.3",
+    "react-navigation": "^5.0.0",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~18.3.12",
+    "typescript": "^5.3.3"
+  },
+  "private": true
+}

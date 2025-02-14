@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "my-new-project",
+    "slug": "my-new-project",
+    "version": "1.0.2",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to your camera to upload photos.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload photos."
+      },
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-7851172015307946~3324596592"
+      },
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bahakaradagli.torivals"
+    },
+    "android": {
+      "versionCode": 4, 
+      "version": "1.0.3",
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-7851172015307946~3324596592"
+      },
+      "package": "com.bahakaradagli.torivals"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bd751fac-20c7-409e-a99b-7c665a02b24c"
+      }
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "video": {}
+        }
+      ]
+    ]
+  }
+}
