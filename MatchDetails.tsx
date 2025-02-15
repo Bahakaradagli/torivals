@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, FlatList, TouchableOpacity,ScrollView, Modal,Alert } from 'react-native';
+import React, { useEffect, useState,useRef  } from 'react';
+import { View, Text, StyleSheet, Image, FlatList, TouchableOpacity,ScrollView, Modal,Alert,Animated  } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
@@ -32,32 +32,39 @@ const MatchDetails = ({ route }) => {
     const auth = getAuth();
     setUserId(auth.currentUser?.uid);
   }, []);
+
+  const teamColors = {
+    [user1]: "#00003B", // Mavi (User1)
+    [user2]: "#8B0000", // Kırmızı (User2)
+  };
+
+
   const teamPlayers = {
     [user1]: [
-      { id: 1, name: "GK", top: 85, left: 50 }, 
-      { id: 2, name: "RB", top: 70, left: 80 }, 
-      { id: 3, name: "RCB", top: 70, left: 60 }, 
-      { id: 4, name: "LCB", top: 70, left: 40 }, 
-      { id: 5, name: "LB", top: 70, left: 20 }, 
-      { id: 6, name: "CDM", top: 50, left: 50 }, 
-      { id: 7, name: "RCM", top: 40, left: 65 }, 
-      { id: 8, name: "LCM", top: 40, left: 35 }, 
-      { id: 9, name: "RW", top: 25, left: 80 }, 
-      { id: 10, name: "ST", top: 20, left: 50 }, 
-      { id: 11, name: "LW", top: 25, left: 20 }, 
+      { id: 1, name: "GK", top: 80, left: 43 },  // Kaleci
+      { id: 2, name: "RB", top: 55, left: 83 },  // Sağ Bek
+      { id: 3, name: "RCB", top: 65, left: 58 }, // Sağ Stoper
+      { id: 4, name: "LCB", top: 65, left: 28 }, // Sol Stoper
+      { id: 5, name: "LB", top: 55, left: 3 },   // Sol Bek
+      { id: 6, name: "CDM", top: 50, left: 43 }, // Ön Libero
+      { id: 7, name: "RCM", top: 35, left: 58 }, // Sağ Merkez Orta Saha
+      { id: 8, name: "LCM", top: 35, left: 28 }, // Sol Merkez Orta Saha
+      { id: 9, name: "RW", top: 20, left: 73 },  // Sağ Kanat
+      { id: 10, name: "ST", top: 15, left: 43 }, // Forvet
+      { id: 11, name: "LW", top: 20, left: 13 }, // Sol Kanat
     ],
     [user2]: [
-      { id: 1, name: "GK", top: 85, left: 50 }, 
-      { id: 2, name: "RB", top: 70, left: 80 }, 
-      { id: 3, name: "RCB", top: 70, left: 60 }, 
-      { id: 4, name: "LCB", top: 70, left: 40 }, 
-      { id: 5, name: "LB", top: 70, left: 20 }, 
-      { id: 6, name: "CDM", top: 50, left: 50 }, 
-      { id: 7, name: "RCM", top: 40, left: 65 }, 
-      { id: 8, name: "LCM", top: 40, left: 35 }, 
-      { id: 9, name: "RW", top: 25, left: 80 }, 
-      { id: 10, name: "ST", top: 20, left: 50 }, 
-      { id: 11, name: "LW", top: 25, left: 20 }, 
+      { id: 1, name: "GK", top: 80, left: 43 },  // Kaleci
+      { id: 2, name: "RB", top: 55, left: 83 },  // Sağ Bek
+      { id: 3, name: "RCB", top: 65, left: 58 }, // Sağ Stoper
+      { id: 4, name: "LCB", top: 65, left: 28 }, // Sol Stoper
+      { id: 5, name: "LB", top: 55, left: 3 },   // Sol Bek
+      { id: 6, name: "CDM", top: 50, left: 43 }, // Ön Libero
+      { id: 7, name: "RCM", top: 35, left: 58 }, // Sağ Merkez Orta Saha
+      { id: 8, name: "LCM", top: 35, left: 28 }, // Sol Merkez Orta Saha
+      { id: 9, name: "RW", top: 20, left: 73 },  // Sağ Kanat
+      { id: 10, name: "ST", top: 15, left: 43 }, // Forvet
+      { id: 11, name: "LW", top: 20, left: 13 }, // Sol Kanat
     ],
   };
 
@@ -174,6 +181,32 @@ const MatchDetails = ({ route }) => {
     }
 };
  
+  // 📌 Animasyon değerleri (Fade ve Slide için)
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+const animatePlayers = () => {
+  fadeAnim.setValue(0);
+  slideAnim.setValue(20);
+  
+  Animated.parallel([
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500, 
+      useNativeDriver: true,
+    }),
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    }),
+  ]).start();
+};
+
+// 📌 Takım değiştiğinde animasyonu tetikle
+useEffect(() => {
+  animatePlayers();
+}, [selectedTeam]);
+
   useEffect(() => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
@@ -305,7 +338,6 @@ const takePhotoAndUpload = async (folder) => {
   }
 };
 
-const lineupImage = require("./assets/Pitch.png");
   const tabs = ['General', 'Lineup', 'Stats', 'Photos'];
   const [selectedTab, setSelectedTab] = useState('General');
 
@@ -364,38 +396,45 @@ const lineupImage = require("./assets/Pitch.png");
 {selectedTab === 'Lineup' && (
 
 <View style={styles.container}>
-{/* 📌 Takım Seçim Sekmesi */}
 <View style={styles.teamSelection}>
-  <TouchableOpacity
-    style={[styles.teamTab, selectedTeam === user1 && styles.selectedTeamTab]}
-    onPress={() => setSelectedTeam(user1)}
-  >
-    <Text style={[styles.teamName, selectedTeam === user1 && styles.selectedTeamText]}>{user1}</Text>
-  </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.teamTab, selectedTeam === user1 && { backgroundColor: teamColors[user1] }]}
+          onPress={() => setSelectedTeam(user1)}
+        >
+          <Text style={[styles.teamName, selectedTeam === user1 && styles.selectedTeamText]}>{user1}</Text>
+        </TouchableOpacity>
 
-  <TouchableOpacity
-    style={[styles.teamTab, selectedTeam === user2 && styles.selectedTeamTab]}
-    onPress={() => setSelectedTeam(user2)}
-  >
-    <Text style={[styles.teamName, selectedTeam === user2 && styles.selectedTeamText]}>{user2}</Text>
-  </TouchableOpacity>
-</View>
+        <TouchableOpacity
+          style={[styles.teamTab, selectedTeam === user2 && { backgroundColor: teamColors[user2] }]}
+          onPress={() => setSelectedTeam(user2)}
+        >
+          <Text style={[styles.teamName, selectedTeam === user2 && styles.selectedTeamText]}>{user2}</Text>
+        </TouchableOpacity>
+      </View>
 
-{/* 📌 Saha Görseli ve Oyuncular */}
-<View style={styles.lineupContainer}>
-  <Image source={require("./assets/Pitch.png")} style={styles.lineupImage} />
+      {/* 📌 Saha Görseli ve Oyuncular */}
+      <View style={styles.lineupContainer}>
+        <Image source={require("./assets/Pitch.png")} style={styles.lineupImage} />
 
-  {/* 📌 Seçili takımın oyuncuları */}
-  {teamPlayers[selectedTeam].map((player) => (
-    <TouchableOpacity
-      key={player.id}
-      style={[styles.playerPosition, { top: `${player.top}%`, left: `${player.left}%` }]}
-      onPress={() => Alert.alert(`${player.name}`, "Oyuncu Detayları")}
-    >
-      <Text style={styles.playerText}>{player.name}</Text>
-    </TouchableOpacity>
-  ))}
-</View>
+        {/* 📌 Seçili takımın oyuncuları */}
+        {teamPlayers[selectedTeam].map((player) => (
+          <Animated.View
+            key={player.id}
+            style={[
+              styles.playerPosition,
+              {
+                top: `${player.top}%`,
+                left: `${player.left}%`,
+                borderColor: teamColors[selectedTeam],
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <Text style={styles.playerText}>{player.name}</Text>
+          </Animated.View>
+        ))}
+      </View>
 </View>
 
     )}
@@ -476,6 +515,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 5,
     },
+
+
+    
     container: { flex: 1, backgroundColor: '#000', padding: 15 },
     photoSection: { marginBottom: 20, padding: 10, borderRadius: 10, backgroundColor: "#121212" },
     uploadedPhoto: { width: 100, height: 100, margin: 5, borderRadius: 10, borderWidth: 1, borderColor: "#ffcc00" },
@@ -496,7 +538,7 @@ const styles = StyleSheet.create({
   teamSelection: {
     flexDirection: "row",
     justifyContent: "space-around",
-    backgroundColor: "#1e1e1e",
+    backgroundColor: "#000",
     padding: 10,
     borderRadius: 10,
   },
@@ -521,8 +563,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   selectedTeamText: {
-    fontWeight: "bold",
-    color: "#000",
+    color: "#fff",
   },
 
   // 📌 Saha Görseli ve Oyuncular
