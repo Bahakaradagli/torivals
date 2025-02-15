@@ -7,7 +7,7 @@ import { Video } from 'expo-av';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes,listAll,deleteObject , getDownloadURL } from 'firebase/storage';
-
+import { useNavigation } from '@react-navigation/native';
 
 const TournamentDetails = ({ route }) => {
   const { tournament } = route.params;
@@ -24,6 +24,7 @@ const TournamentDetails = ({ route }) => {
     { round: "1. Tur", matches: [] }, 
     { round: "2. Tur", matches: [] }, // 2. tur için alan oluşturduk
   ]);
+  const navigation = useNavigation();
   const [tournamentWinner, setTournamentWinner] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -38,6 +39,46 @@ const TournamentDetails = ({ route }) => {
   ];
 
   const [photoUrls, setPhotoUrls] = useState([]);
+  const [participantsData, setParticipantsData] = useState({});
+
+  useEffect(() => {
+    const participantsRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/participants`
+    );
+  
+    onValue(participantsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const participants = snapshot.val();
+        setParticipantsData(participants);
+      } else {
+        console.log("Katılımcı verisi bulunamadı.");
+        setParticipantsData({});
+      }
+    });
+  
+  }, [tournament.tournamentId]);
+  
+
+
+  const enrichMatchesWithIds = (matches) => {
+    return matches.map((match) => {
+      const team1Id = Object.keys(participantsData).find(
+        (key) => participantsData[key].companyName === match.team1
+      );
+  
+      const team2Id = Object.keys(participantsData).find(
+        (key) => participantsData[key].companyName === match.team2
+      );
+  
+      return {
+        ...match,
+        team1Id: team1Id || null, // Eğer bulunamazsa null döndür
+        team2Id: team2Id || null,
+      };
+    });
+  };
+  
 
   const loadPhotos = async (match) => {
     const urls = await fetchPhotosForMatch(match);
@@ -50,23 +91,97 @@ const TournamentDetails = ({ route }) => {
     }
   }, [selectedMatch]);
 
-  const showMatchDetails = (match) => {
-    Alert.alert(
-      'Maç Detayları',
-      `${match.team1} vs ${match.team2}`,
-      [
-        {
-          text: 'Fotoğraf Yükle',
-          onPress: () => pickImageAndUpload(match),
-        },
-        {
-          text: 'İptal',
-          style: 'cancel',
-        },
-      ],
-      { cancelable: true }
-    );
+  const showMatchDetails = (match, roundKey) => {
+    console.log("📌 Seçilen Maç Bilgisi:", match); // Debugging
+    
+    const enrichedMatch = {
+      ...match,
+      team1Id: Object.keys(participantsData).find((key) => participantsData[key].companyName === match.team1),
+      team2Id: Object.keys(participantsData).find((key) => participantsData[key].companyName === match.team2),
+    };
+  
+    navigation.navigate('MatchDetails', {
+      matchId: enrichedMatch.id,
+      user1: enrichedMatch.team1,
+      user2: enrichedMatch.team2,
+      user1Id: enrichedMatch.team1Id,
+      user2Id: enrichedMatch.team2Id,
+      team1Score: enrichedMatch.team1Score ?? 0,
+      team2Score: enrichedMatch.team2Score ?? 0,
+      roundNumber: parseInt(roundKey),
+      startDate: tournament.startDate,
+    });
   };
+  
+  
+  
+  
+  
+  useEffect(() => {
+    if (!tournament || !tournament.startDate) {
+      console.log("⚠️ Turnuva veya startDate bilgisi eksik, bekleniyor...");
+      return; // Eğer startDate yoksa fonksiyondan çık
+    }
+  
+    try {
+      console.log("📌 Gelen Start Date:", tournament.startDate); // Debugging
+  
+      // Start Date formatı: "31/01/2025 20:00"
+      const [datePart, timePart] = tournament.startDate.split(" ");
+      
+      if (!datePart || !timePart) {
+        console.error("⛔ Geçersiz tarih formatı:", tournament.startDate);
+        return;
+      }
+  
+      const [day, month, year] = datePart.split("/");
+      const [hour, minute] = timePart.split(":");
+  
+      const startDate = new Date(
+        Number(year),
+        Number(month) - 1, // JavaScript'te aylar 0'dan başlar
+        Number(day),
+        Number(hour),
+        Number(minute)
+      );
+  
+      console.log("✅ Düzenlenmiş Tarih:", startDate);
+  
+      // Maçları 5 dakika sonra başlatmak için
+      const fiveMinutesAfterStart = new Date(startDate.getTime() + 5 * 60000);
+      const now = new Date();
+  
+      console.log("🔹 Şu An:", now);
+      console.log("🔹 5 Dakika Sonrası:", fiveMinutesAfterStart);
+  
+      if (now >= fiveMinutesAfterStart) {
+        console.log("✅ 5 dakika geçti, maçlar başlatılabilir!");
+        
+      } else {
+        console.log("⏳ Maçların başlaması için daha zaman var.");
+      }
+    } catch (error) {
+      console.error("⛔ Tarih formatı hatası:", error.message);
+    }
+  }, [tournament?.startDate]);
+  
+  
+  // 🏆 **Maçları Başlatma Fonksiyonu**
+  const startFirstMatches = () => {
+    console.log("📢 İlk maçlar başlatılıyor...");
+  
+    const matchesRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/rounds/1`
+    );
+  
+    update(matchesRef, {
+      started: true, // Firebase'de maçların başladığını belirtebiliriz
+    })
+      .then(() => console.log("✅ İlk maçlar başarıyla başlatıldı!"))
+      .catch((err) => console.error("Hata:", err.message));
+  };
+  
   
   const [companyName, setCompanyName] = useState('Bilinmiyor');
 
@@ -115,6 +230,7 @@ const TournamentDetails = ({ route }) => {
     }
   };
   useEffect(() => {
+    console.log(tournament.StartTime+"asdadqfq");
     if (tournamentWinner?.winner) {
       console.log("Kazanan mevcut, fotoğraflar siliniyor..."); // Eklenen debug satırı
       deleteTournamentPhotos(tournament.tournamentId)
@@ -311,27 +427,29 @@ const TournamentDetails = ({ route }) => {
   
   
 
-const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount, xp) => {
-  try {
-
-    const userRef = ref(database, `users/${participantId}/tournaments/${tournamentId}`);
-    await update(userRef, {
-      prize: (
-        (tournament.participantCount *
-          tournament.participationFee *
-          tournament.prizePercentage) /
-        100
-      ).toFixed(2),
-      xp: tournament.firstPlaceGP,
-      TournamentName: tournament.tournamentName,
-      timestamp: Date.now(),
-    });
-
-    console.log(`ID: ${participantId} için ödüller başarıyla eklendi.`);
-  } catch (error) {
-    console.error("Ödül eklenirken hata oluştu:", error.message);
-  }
-};
+  const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount, xp) => {
+    try {
+      const userRef = ref(database, `users/${participantId}/tournaments/${tournamentId}`);
+  
+      // Ödülü ve XP'yi (GP) sayısal olarak hesapla
+      const calculatedPrize = parseFloat(
+        ((tournament.participantCount * tournament.participationFee * tournament.prizePercentage) / 100).toFixed(2)
+      );
+      const calculatedXp = parseInt(tournament.firstPlaceGP, 10); // XP (GP) sayısal olacak
+  
+      await update(userRef, {
+        prize: calculatedPrize, // Ödülü number formatında kaydediyoruz
+        xp: calculatedXp, // XP (GP) number formatında kaydediliyor
+        TournamentName: tournament.tournamentName,
+        timestamp: Date.now(),
+      });
+  
+      console.log(`ID: ${participantId} için ödüller başarıyla eklendi. (Ödül: ${calculatedPrize}, GP: ${calculatedXp})`);
+    } catch (error) {
+      console.error("Ödül eklenirken hata oluştu:", error.message);
+    }
+  };
+  
 
 
 
@@ -504,11 +622,11 @@ const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount
 
   
   useEffect(() => {
-    console.log(participantsCount);
-    console.log(teamsData.length);
+    console.log("🔄 useEffect tetiklendi: participantsCount =", participantsCount, ", teamsData.length =", teamsData.length);
+  
     if (participantsCount > 1 && teamsData.length > 0) {
-      if (participantsCount == teamsData.length) {
-
+      if (participantsCount === teamsData.length) {
+        console.log("✅ Katılımcı sayıları eşleşiyor. İlk tur oluşturulacak...");
         const roundRef = ref(
           database,
           `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/rounds/1`
@@ -516,19 +634,20 @@ const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount
   
         get(roundRef).then((snapshot) => {
           if (!snapshot.exists()) {
-            console.log('Katılımcı sayıları eşleşiyor. İlk tur oluşturuluyor...');
+            console.log("✅ İlk tur oluşturuluyor...");
             createInitialBracket(teamsData);
           } else {
-            console.log('1. Tur zaten oluşturulmuş.');
+            console.log("⚠️ 1. Tur zaten mevcut.");
           }
         });
       } else {
-        console.log('Katılımcı sayıları eşleşmiyor. İlk tur oluşturulmadı.');
+        console.log("❌ Katılımcı sayıları eşleşmiyor. İlk tur oluşturulmadı.");
       }
     } else {
-      console.log('Katılımcı sayısı 2\'den az. İlk tur oluşturulamaz.');
+      console.log("⛔ participantsCount < 2 veya teamsData boş.");
     }
   }, [participantsCount, teamsData]);
+  
   
   
   useEffect(() => {
@@ -547,12 +666,13 @@ const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount
       }
     });
   }, []);
-  
   const createInitialBracket = (teams) => {
     if (teams.length < 2) {
-      console.log('Katılımcı sayısı yeterli değil. İlk tur oluşturulmadı.');
+      console.log("❌ Katılımcı sayısı yeterli değil. İlk tur oluşturulmadı.");
       return;
     }
+  
+    console.log("🏆 İlk Tur Maçları Başlatılıyor...", teams);
   
     const roundRef = ref(
       database,
@@ -561,7 +681,7 @@ const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount
   
     get(roundRef).then((snapshot) => {
       if (snapshot.exists()) {
-        console.log('1. Tur zaten oluşturulmuş.');
+        console.log("⚠️ 1. Tur zaten oluşturulmuş.");
         return;
       }
   
@@ -578,14 +698,14 @@ const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount
         initialBracket.push(match);
       }
   
-      update(roundRef, { matches: initialBracket })
-        .then(() => console.log('1. Tur başarıyla oluşturuldu.'))
-        .catch((err) => console.error('Hata:', err.message));
+      console.log("✅ İlk Tur Maçları:", initialBracket);
+  
+      update(roundRef, { matches: initialBracket, started: true })
+        .then(() => console.log("✅ 1. Tur başarıyla oluşturuldu."))
+        .catch((err) => console.error("❌ Firebase Güncelleme Hatası:", err.message));
     });
   };
   
-
-
 
 
   useEffect(() => {
@@ -892,80 +1012,70 @@ const createNextRound = async (currentRoundIndex) => {
 
 
 {selectedTab === 'Fixtures' && (
-      <ScrollView
-        style={styles.bracketContainer}
-        contentContainerStyle={{ paddingBottom: 20 }} // Alt mesafe ekledik
-      >
-
-    {Object.keys(roundsData).map((roundKey, index) => (
-      <View key={index} style={styles.roundContainer}>
-        <Text style={styles.roundTitle}>{roundKey}. Round</Text>
-        {roundsData[roundKey]?.matches?.map((match, matchIndex) => (
-         <TouchableOpacity
-         key={matchIndex}
-         style={[
-           styles.matchContainer,
-           (match.team1 === companyName || match.team2 === companyName) && { borderColor: '#fff', borderWidth: 2 },
-         ]}
-         onPress={() => {
-           if (match.team1 === companyName || match.team2 === companyName) {
-             showMatchDetails(match);
-           } else {
-             Alert.alert("Hata", "Bu maça erişim izniniz yok.");
-           }
-         }} // Şirket adına göre tıklanabilirlik
-       >
-            <Image
-              source={require('./assets/fixture_background.png')}
-              style={styles.backgroundVideo}
-              resizeMode="cover"
-              shouldPlay
-              isLooping
-              isMuted
-            />
-            <Text     style={[
-          styles.teamText,
-          match.team1Score > match.team2Score ? { fontWeight: 'bold' } : null,
-        ]}>{match.team1 || "Bekleniyor"}</Text>
-            <Text style={styles.scoreText}>
-              {match.team1Score != null && match.team2Score != null
-                ? `${match.team1Score} - ${match.team2Score}`
-                : "VS"}
-            </Text>
-            {isCompany && (
-            <TouchableOpacity
-              onPress={() => {
-                setSelectedMatch(match);
-                setSelectedRoundKey(roundKey);
-                setIsModalVisible(true);
-              }}
-              style={styles.editButton}
-            >
-              <Text style={styles.editButtonText}>Skor Düzenle</Text>
-            </TouchableOpacity>
-          )}
-            <Text     style={[
-          styles.teamText,
-          match.team1Score < match.team2Score ? { fontWeight: 'bold' } : null,
-        ]}>{match.team2}</Text>
-          </TouchableOpacity>
-        ))}
+  <ScrollView
+    style={styles.bracketContainer}
+    contentContainerStyle={{ paddingBottom: 20 }} // Alt mesafe ekledik
+  >
+    {/* Eğer hiç maç yoksa */}
+    {Object.keys(roundsData).length === 0 ? (
+      <View style={styles.waitingContainer}>
+        <Text style={styles.waitingText}>Tournament has not started yet. Please wait...</Text>
       </View>
-    ))}
-{tournamentWinner && (
-  <View style={styles.winnerContainer}>
-    <Text style={styles.winnerText}>
-      {tournamentWinner.isFinal
-        ? `Winner is ${tournamentWinner.winner}` // Sadece final kazananı
-        : `Round Winner is ${tournamentWinner.winner}`} 
-    </Text>
-  </View>
-)}
+    ) : (
+      Object.keys(roundsData).map((roundKey, index) => (
+        <View key={index} style={styles.roundContainer}>
+          <Text style={styles.roundTitle}>{roundKey}. Round</Text>
+          {roundsData[roundKey]?.matches?.map((match, matchIndex) => (
+            
+<TouchableOpacity
+  key={matchIndex}
+  style={[
+    styles.matchContainer,
+    (match.team1 === companyName || match.team2 === companyName) && { borderColor: '#fff', borderWidth: 2 },
+  ]}
+  onPress={() => showMatchDetails(match, roundKey)} // Herkes detayları görebilir
+>
 
-
-
-              </ScrollView>
-  
+          
+              <Image
+                source={require('./assets/fixture_background.png')}
+                style={styles.backgroundVideo}
+                resizeMode="cover"
+                shouldPlay
+                isLooping
+                isMuted
+              />
+              <Text style={[
+                styles.teamText,
+                match.team1Score > match.team2Score ? { fontWeight: 'bold' } : null,
+              ]}>{match.team1 || "Waiting"}</Text>
+              <Text style={styles.scoreText}>
+                {match.team1Score != null && match.team2Score != null
+                  ? `${match.team1Score} - ${match.team2Score}`
+                  : "VS"}
+              </Text>
+              {isCompany && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedMatch(match);
+                    setSelectedRoundKey(roundKey);
+                    setIsModalVisible(true);
+                  }}
+                  style={styles.editButton}
+                >
+                  <Text style={styles.editButtonText}>Edit Score</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={[
+                styles.teamText,
+                match.team1Score < match.team2Score ? { fontWeight: 'bold' } : null,
+              ]}>{match.team2}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ))
+    )}
+  </ScrollView>
 )}
 
 
@@ -1077,14 +1187,6 @@ const createNextRound = async (currentRoundIndex) => {
 {selectedTab === 'Teams' && (
   <View style={styles.table}>
 
-                  <Video
-                    source={require('./assets/PuanDurumuBG2.mp4')}
-                    style={styles.backgroundVideo2}
-                    resizeMode="cover"
-                    shouldPlay
-                    isLooping
-                    isMuted
-                  />
     <View style={styles.headerRow}>
       <Text style={[styles.headerCell, styles.rank]}>#</Text>
       <Text style={[styles.headerCell, styles.team]}>Takım İsmi</Text>
@@ -1288,6 +1390,20 @@ overlayContainer: {
     color: '#FFF',
     marginBottom: 5,
   },
+  waitingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#000',
+    borderRadius: 10,
+  },
+  waitingText: {
+    fontSize: 18,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  
   detailLabel: {
     fontWeight: 'bold',
     color: '#fff',

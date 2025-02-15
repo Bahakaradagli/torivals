@@ -73,9 +73,6 @@ export default function ProfileScreen() {
   const [location, setLocation] = useState('');
   const [profession, setProfession] = useState('');
   const [field, setField] = useState('');
-  const [birthDay, setBirthDay] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthYear, setBirthYear] = useState('');  
   const [editMode, setEditMode] = useState(false); // State to toggle edit mode
   const [profileImageUrl, setProfileImageUrl] = useState(null);
 
@@ -115,9 +112,6 @@ export default function ProfileScreen() {
           setName(data.name || '');
           setLocation(data.location || '');
           const [day, month, year] = data.birthdate?.split('/') || [];
-          setBirthDay(day || '');
-          setBirthMonth(month || '');
-          setBirthYear(year || '');
           setProfileImageUrl(data.profileImage || null);
         }
       });
@@ -156,6 +150,21 @@ export default function ProfileScreen() {
   }
 };
 
+
+useEffect(() => {
+  if (user) {
+    const workExpRef = ref(db, 'users/' + user.uid + '/zzzCardInformation');
+
+    onValue(workExpRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setCompanyName(data.companyName || { companyName: 'Not Set' });
+      }
+    });
+  }
+}, [user]);
+
+
   const renderRightActions = (id, type) => (
     <TouchableOpacity
       onPress={() => {
@@ -183,7 +192,6 @@ export default function ProfileScreen() {
           setLocation(data.location || '');
           setProfession(data.profession || '');
           setField(data.field || '');
-          setBirthdate(data.birthdate || '');
           setProfileImageUrl(data.profileImage || null); // Profil resmini yükle
         }
       });
@@ -193,13 +201,11 @@ export default function ProfileScreen() {
   const handleSaveProfile = () => {
     if (user) {
       const personalInfoRef = ref(db, 'users/' + user.uid + '/personalInfo');
-      const combinedBirthdate = `${birthDay}/${birthMonth}/${birthYear}`;
 
       update(personalInfoRef, {
         name,
         location,
         profession,
-        birthdate: combinedBirthdate,
         profileImage: profileImageUrl,
       })
       .then(() => {
@@ -343,7 +349,7 @@ export default function ProfileScreen() {
           <View style={styles.profileInfoContainer}>            
      <View style={styles.sectionHeaderContainer}>
   <Text style={[styles.sectionHeader]}>
-    Kullanıcı Bilgisi
+    User Information
   </Text>
   <TouchableOpacity onPress={() => setEditMode(true)} style={styles.addIcon}>
     <Ionicons name={showWorkForm ? "create" : "create"} size={24} color="white" />
@@ -352,95 +358,87 @@ export default function ProfileScreen() {
 </View>
 <View style={styles.separator} />
         <View style={styles.infoBox}>
-        <Text style={styles.infoLabel}>İsim</Text>
+        <Text style={styles.infoLabel}>Name</Text>
           <Text style={styles.profileName}>{name}</Text>
         </View>
             <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Telefon Numarası</Text>
+            <Text style={styles.infoLabel}>Phone Number</Text>
           <Text style={styles.profileText}>{location}</Text>
         </View>
             <View style={styles.infoBox}>
-            <Text style={styles.infoLabel}>Adres</Text>
+            <Text style={styles.infoLabel}>Adress</Text>
           <Text style={styles.profileText}>{profession}</Text>
         </View>
+        <View style={styles.infoBox}>
+  <Text style={styles.infoLabel}>EA Username</Text>
+  <Text style={styles.profileText}>
+    {companyName?.companyName || "Not Set"}
+  </Text>
+</View>
+
           </View>
         ) : (
-          // Profile Edit Mode
-          <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="İsim"
-              placeholderTextColor="gray"
-            />
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="İkamet"
-              placeholderTextColor="gray"
-            />
-            <TextInput
-              style={styles.input}
-              value={profession}
-              onChangeText={setProfession}
-              placeholder="Meslek"
-              placeholderTextColor="gray"
-            />
+<View style={styles.formContainer}>
+  <View style={styles.inputContainer}>
+    <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
+    <TextInput
+      style={styles.input}
+      value={name}
+      onChangeText={setName}
+      placeholder="Name"
+      placeholderTextColor="gray"
+    />
+  </View>
 
-<TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
-  <Text style={styles.saveButtonText}>Kaydet</Text>
-</TouchableOpacity>
-          </View>
+  <View style={styles.inputContainer}>
+    <Ionicons name="call-outline" size={20} color="#888" style={styles.inputIcon} />
+    <TextInput
+      style={styles.input}
+      value={location}
+      onChangeText={setLocation}
+      placeholder="Phone Number"
+      placeholderTextColor="gray"
+    />
+  </View>
+
+  <View style={styles.inputContainer}>
+    <Ionicons name="home-outline" size={20} color="#888" style={styles.inputIcon} />
+    <TextInput
+      style={styles.input}
+      value={profession}
+      onChangeText={setProfession}
+      placeholder="Address"
+      placeholderTextColor="gray"
+    />
+  </View>
+
+  <View style={styles.inputContainer}>
+    <Ionicons name="game-controller-outline" size={20} color="#888" style={styles.inputIcon} />
+    <TextInput
+      style={styles.input}
+      value={companyName}
+      onChangeText={setCompanyName}
+      placeholder="EA Username"
+      placeholderTextColor="gray"
+    />
+  </View>
+
+  <TouchableOpacity 
+    style={styles.saveButton} 
+    onPress={() => {
+      handleSaveProfile();
+      handleSaveWorkExperience();
+    }}
+  >
+    <Text style={styles.saveButtonText}>Save</Text>
+  </TouchableOpacity>
+</View>
+
         )}
       </View>
 
 
-      <View style={styles.sectionHeaderContainer}>
 
-  <Text style={[styles.sectionHeader, showWorkForm ? styles.selectedHeader : null]}>
-    EA Hesap Doğrulama
-  </Text>
-  
-  <TouchableOpacity onPress={toggleWorkForm} style={styles.addIcon}>
-    <Ionicons name={showWorkForm ? "remove-circle-outline" : "add-circle-outline"} size={24} color="white" />
-  </TouchableOpacity>
-</View>
-
-
-{showWorkForm && (
-  <View style={styles.formContainer}>
-    {/* Eğer bir EA kullanıcı adı varsa sadece kullanıcı adı ve silme butonu gösterilir */}
-    {workExperiences.length > 0 ? (
-      workExperiences.map(([id, exp]) => (
-        <View key={id} style={styles.workExperienceContainer}>
-          <Text style={styles.companyName}>EA Kullanıcı Adı: {exp.companyName}</Text>
-          <TouchableOpacity
-            onPress={() => handleDeleteWorkExperience(id)}
-            style={styles.deleteButton}
-          >
-            <Text style={styles.deleteButtonText}>Sil</Text>
-          </TouchableOpacity>
-        </View>
-      ))
-    ) : (
-      // Eğer kullanıcı adı yoksa input alanı ve kaydet butonu gösterilir
-      <>
-        <TextInput
-          style={styles.input}
-          value={companyName}
-          onChangeText={setCompanyName}
-          placeholder="EA Kullanıcı Adı"
-          placeholderTextColor={"gray"}
-        />
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveWorkExperience}>
-          <Text style={styles.saveButtonText}>Kaydet</Text>
-        </TouchableOpacity>
-      </>
-    )}
-  </View>
-)}
 
 
 
@@ -452,7 +450,50 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-
+  formContainer: {
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: '#111',
+    borderRadius: 15,
+    width: '100%',
+    elevation: 5, // Hafif gölge efekti
+  },
+  
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#00343f',
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  
+  inputIcon: {
+    marginRight: 10,
+  },
+  
+  input: {
+    flex: 1,
+    color: 'white',
+    fontSize: 16,
+  },
+  
+  saveButton: {
+    backgroundColor: '#00343f', 
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  
   workExperienceContainer: {
     backgroundColor: '#222', 
     borderRadius: 10,
@@ -558,17 +599,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  saveButton: {
-    backgroundColor: '#00343f', 
-    padding: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 15,
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-  },
+  
   container: {
     flex: 1,
     backgroundColor: '#000',
@@ -598,15 +629,15 @@ const styles = StyleSheet.create({
     color: '#ccc', 
   },
   profileName: {
-    fontSize: 20,
-    top: 5,
+    fontSize: 18,
+    top: 9,
     color: '#fff',
     textAlign: 'left',
   },
   profileText: {
     color: '#fff',
-    fontSize: 20,
-    top: 8,
+    fontSize: 16,
+    top: 10,
     textAlign: 'left',
   },
   editButtonText: {
@@ -624,24 +655,7 @@ const styles = StyleSheet.create({
   },
 
 
-  formContainer: {
-    
-    marginBottom: 20,
-    padding: 10,
-    backgroundColor: '#111',
-    borderRadius: 10,
-    width: '100%',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#00343f',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 5,
-    color: 'white',
-    backgroundColor: '#000',
-    alignSelf: 'stretch', // Makes the input full width
-  },
+  
   sectionContainer: {
     backgroundColor: '#333', 
     padding: 15,

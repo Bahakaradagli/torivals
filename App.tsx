@@ -13,6 +13,7 @@ import ProfileScreen from './ProfileScreen';
 import GraphScreen from './GraphScreen';
 import CartPage from './CartPage';
 import TournamentDetails from './TournamentDetails';
+import MatchDetails from './MatchDetails';
 import CompanyProfileScreen from './CompanyProfileScreen';
 import CompanyAddItem from './CompanyAddItem';
 import BuySubPage from './BuySubPage';
@@ -56,6 +57,7 @@ function MyTournamentsStack() {
         component={TournamentDetails}
         options={{ headerShown: false }}
       />
+                    <Stack.Screen name="MatchDetails" component={MatchDetails}         options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -258,23 +260,31 @@ export default function App() {
     <NavigationContainer>
     {isLoggedIn ? (
       <Stack.Navigator>
-        <Stack.Screen
-          name="HomeTabs"
-          component={HomeTabs}
-          options={{
-            headerShown: true,
-            headerTitle: 'To Rivals', // Header başlığı
-            headerBackground: () => (
-              <Image
-                source={require('./assets/downpanel.png')} // Resmin yolu
-                style={{ width: '100%', height: '100%' }}
-                resizeMode="cover" // Resmin başlık alanını tamamen kaplaması için
-              />
-            ),
-            headerTintColor: '#ffffff', // Yazı rengi
-            headerTitleStyle: { fontWeight: 'bold' },
-          }}
+<Stack.Screen
+  name="HomeTabs"
+  component={HomeTabs}
+  options={{
+    headerShown: true,
+    headerTitle: '', // Başlığı tamamen kaldırır
+    headerLeft: () => (
+      <TouchableOpacity style={{ marginLeft: 15 }}>
+        <Image
+          source={require('./assets/adaptive-icon.png')} // Adaptif ikon
+          style={{ width: 60, height: 60 }}
+          resizeMode="contain"
         />
+      </TouchableOpacity>
+    ),
+    headerBackground: () => (
+      <Image
+        source={require('./assets/downpanel.png')} // Arka plan
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
+      />
+    ),
+  }}
+/>
+
         <Stack.Screen
           name="Settings"
           component={GraphScreen}

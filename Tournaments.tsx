@@ -88,7 +88,7 @@ const Tournaments = () => {
     if (user.email === 'admin@gmail.com') {
       const myTournamentsRef = ref(database, `companies/${user.uid}/MyTournaments`);
       update(myTournamentsRef, {
-        [tournament.tournamentId]: tournament.tournamentId // "tournamentId": "tournamentId" formatında ekler
+        [tournament.tournamentId]: tournament.tournamentId
       })
         .then(() => {
           alert('Turnuva başarıyla hesabınıza eklendi!');
@@ -103,9 +103,8 @@ const Tournaments = () => {
       const myTournamentsRef = ref(database, `users/${user.uid}/MyTournaments`);
   
       if (isCompany) {
-        // Şirket hesabıysa sadece MyTournaments kısmına ekle
         update(myTournamentsRef, {
-          [tournament.tournamentId]: tournament.tournamentId // "tournamentId": "tournamentId" formatında ekler
+          [tournament.tournamentId]: tournament.tournamentId
         })
           .then(() => {
             alert('Turnuva başarıyla hesabınıza eklendi!');
@@ -113,7 +112,6 @@ const Tournaments = () => {
           })
           .catch((error) => console.error('Hata:', error.message));
       } else {
-        // Kullanıcı hesabıysa hem participants listesine ekle hem de MyTournaments'e ekle
         const userCompanyRef = ref(database, `users/${user.uid}/zzzCardInformation`);
   
         onValue(
@@ -128,20 +126,21 @@ const Tournaments = () => {
             }
   
             const participantData = {
-              id: user.uid,
+              id: user.uid, // 🔥 Kullanıcı kendi UID’si ile kaydolacak
               email: user.email,
               companyName: companyName,
             };
   
-            const participantsRef = ref(
+            // 🔥 `push` yerine `set` kullanarak UID ile ekleme yapıyoruz
+            const participantRef = ref(
               database,
-              `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/participants`
+              `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/participants/${user.uid}`
             );
   
-            push(participantsRef, participantData)
+            set(participantRef, participantData) // 🔥 Kullanıcının UID'sini key olarak kullanarak ekleme
               .then(() => {
                 update(myTournamentsRef, {
-                  [tournament.tournamentId]: tournament.tournamentId // "tournamentId": "tournamentId" formatında ekler
+                  [tournament.tournamentId]: tournament.tournamentId
                 })
                   .then(() => {
                     alert('Turnuvaya başarıyla katıldınız!');
@@ -156,6 +155,7 @@ const Tournaments = () => {
       }
     });
   };
+  
   
 
   return (

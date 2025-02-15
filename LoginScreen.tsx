@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { Video } from 'expo-av'; // Import Video component from expo-av
+import { Video } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // AsyncStorage eklendi
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 
@@ -9,13 +10,50 @@ export default function DarkLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false); // Remember Me state
   const navigation = useNavigation();
 
-  const handleLogin = () => {
+  // Uygulama açıldığında kayıtlı bilgileri kontrol et
+  useEffect(() => {
+    const checkRememberedUser = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('userEmail');
+        const savedPassword = await AsyncStorage.getItem('userPassword');
+        const savedRememberMe = await AsyncStorage.getItem('rememberMe');
+
+        if (savedEmail && savedPassword && savedRememberMe === 'true') {
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+          setRememberMe(true);
+          // 🔹 Giriş işlemini biraz gecikmeli başlat, böylece email ve şifre state'e yerleşsin
+          setTimeout(() => {
+            handleLogin(savedEmail, savedPassword);
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Error loading saved credentials:', error);
+      }
+    };
+
+    checkRememberedUser();
+  }, []);
+
+  // 🔹 Giriş fonksiyonu (email ve şifre parametre alabilir)
+  const handleLogin = async (emailParam = email, passwordParam = password) => {
     const auth = getAuth();
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredentials) => {
+
+    signInWithEmailAndPassword(auth, emailParam, passwordParam)
+      .then(async (userCredentials) => {
         console.log('Logged in with:', userCredentials.user.email);
+        if (rememberMe) {
+          await AsyncStorage.setItem('userEmail', emailParam);
+          await AsyncStorage.setItem('userPassword', passwordParam);
+          await AsyncStorage.setItem('rememberMe', JSON.stringify(true));
+        } else {
+          await AsyncStorage.removeItem('userEmail');
+          await AsyncStorage.removeItem('userPassword');
+          await AsyncStorage.setItem('rememberMe', JSON.stringify(false));
+        }
         navigation.replace('Home');
       })
       .catch((error) => alert(error.message));
@@ -25,14 +63,14 @@ export default function DarkLoginScreen() {
     <View style={styles.container}>
       {/* Background Video */}
       <Video
-        source={require('./assets/GenelBG1.mp4')} // Replace with your video file
+        source={require('./assets/GenelBG1.mp4')}
         rate={1.0}
         volume={1.0}
-        isMuted={true} // Video will play without sound
-        resizeMode="cover" // Ensure video covers the screen
+        isMuted={true}
+        resizeMode="cover"
         shouldPlay
         isLooping
-        style={StyleSheet.absoluteFillObject} // Makes the video fill the screen
+        style={StyleSheet.absoluteFillObject}
       />
 
       {/* Login Content */}
@@ -69,8 +107,20 @@ export default function DarkLoginScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Remember Me Checkbox */}
+          <TouchableOpacity
+            style={styles.rememberMeContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+          >
+            <Icon
+              name={rememberMe ? 'check-square' : 'square-o'}
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.rememberMeText}>Remember Me</Text>
+          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+          <TouchableOpacity style={styles.loginButton} onPress={() => handleLogin()}>
             <Text style={styles.loginButtonText}>Log In</Text>
           </TouchableOpacity>
 
@@ -91,7 +141,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark overlay over the video
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
@@ -104,7 +154,7 @@ const styles = StyleSheet.create({
     height: 150,
   },
   formContainer: {
-    backgroundColor: 'rgba(30, 30, 30, 0.6)', // Semi-transparent darker overlay
+    backgroundColor: 'rgba(30, 30, 30, 0.6)',
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
@@ -119,13 +169,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    backgroundColor: 'rgba(44, 44, 44, 0.6)', // Semi-transparent input background
+    backgroundColor: 'rgba(44, 44, 44, 0.6)',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 15,
     width: '100%',
     marginBottom: 10,
-    color: '#fff', // White text color for better readability
+    color: '#fff',
     height: 40,
   },
   passwordContainer: {
@@ -137,13 +187,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 15,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    color: '#888',
-    marginBottom: 20,
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  rememberMeText: {
+    color: '#fff',
+    marginLeft: 10,
   },
   loginButton: {
-    backgroundColor: 'rgba(1, 39, 85, 0.6)', // Semi-transparent input backgroundRGBA(1, 39, 85, 1)
+    backgroundColor: 'rgba(1, 39, 85, 0.6)',
     borderRadius: 10,
     paddingVertical: 10,
     width: '100%',
