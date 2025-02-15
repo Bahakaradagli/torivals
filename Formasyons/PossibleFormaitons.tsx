@@ -9,8 +9,50 @@ import {
   ImageBackground,
   Animated
 } from "react-native";
+import { getAuth } from 'firebase/auth';
+import { getDatabase, ref, update, push } from 'firebase/database';
 
 const { width, height } = Dimensions.get("window");
+
+
+const saveTeamToFirebase = async () => {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser; // Kullanıcı giriş yaptıysa ID'yi al
+
+    if (!user) {
+      alert("Lütfen giriş yapın.");
+      return;
+    }
+
+    // Oyuncu bilgilerini bir array olarak düzenleyelim
+    const teamPlayers = selectedPlayers.map(player => ({
+      PlayerName: player.name,
+      PlayerOverall: player.overall,
+      PlayerPosition: player.position,
+      PlayerCardThema: player.cardThema,
+      PlayerFullCardName: player.fullCardName,
+      PlayerImage: player.image
+    }));
+
+    // Toplam overall hesapla (ortalama veya toplam)
+    const totalOverall = teamPlayers.reduce((sum, p) => sum + p.PlayerOverall, 0) / teamPlayers.length;
+
+    // Firebase Firestore'a ekleme işlemi
+    await addDoc(collection(db, "teams"), {
+      userId: user.uid, // Kullanıcının ID'sini ekleyelim
+      teamFormation: selectedFormation,
+      totalOverall: totalOverall,
+      players: teamPlayers,
+      createdAt: new Date()
+    });
+
+    alert("Takım başarıyla kaydedildi!");
+  } catch (error) {
+    console.error("Takım kaydedilirken hata oluştu:", error);
+    alert("Takım kaydedilemedi.");
+  }
+};
 
 
 const formations = {
@@ -179,6 +221,9 @@ const FootballField = () => {
           </View>
         </View>
       </View>
+      <TouchableOpacity onPress={saveTeamToFirebase} style={styles.saveButton}>
+        <Text style={styles.saveButtonText}>Save Team</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -186,7 +231,7 @@ const FootballField = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f0f0", 
+    backgroundColor: "#f0f0f0",
     paddingTop: 30,
   },
   formationSelector: {
@@ -328,6 +373,19 @@ const styles = StyleSheet.create({
   downPenaltyBox: {
     bottom: 0,
   },
+  saveButton: {
+    backgroundColor: "#007AFF",
+    padding: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20
+  },
+  saveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold"
+  }
+  
 });
 
 export default FootballField;

@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { ActivityIndicator, View, TouchableOpacity, Text, StyleSheet,Image, Settings } from 'react-native';
+import { ActivityIndicator, View, TouchableOpacity, Text, StyleSheet, Image, Settings } from 'react-native';
 import { Icon } from 'react-native-elements';
 import LoginScreen from './LoginScreen';
 import SignupScreen from './SignupScreen';
@@ -29,6 +29,7 @@ import { getAuth } from 'firebase/auth';
 import { ref, onValue } from 'firebase/database';
 import { Ionicons } from '@expo/vector-icons';
 import { database } from './firebase';
+import CreaeteTeam from "./formasionTryMain";
 import 'expo-dev-client';
 
 const Stack = createStackNavigator();
@@ -57,7 +58,7 @@ function MyTournamentsStack() {
         component={TournamentDetails}
         options={{ headerShown: false }}
       />
-                    <Stack.Screen name="MatchDetails" component={MatchDetails}         options={{ headerShown: false }} />
+      <Stack.Screen name="MatchDetails" component={MatchDetails} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -114,133 +115,140 @@ function HomeTabs() {
   }
 
   return (
-    
-<Tab.Navigator
-  screenOptions={({ route }) => ({
-    tabBarStyle: {
-      backgroundColor: 'transparent',
-      borderTopWidth: 0,
-      height: 100,
-    },
-    tabBarInactiveTintColor: '#d9d9d9',
-    tabBarActiveTintColor: '#ffffff',
-    headerShown: false,
-    tabBarLabelStyle: {
-      fontSize: 13,
-      marginBottom: 8,
-    },
-    tabBarIcon: ({ focused, color, size }) => {
-      let iconName;
 
-      if (route.name === 'Home') {
-        iconName = 'home';
-      } else if (route.name === 'Products') {
-        iconName = 'list';
-      } else if (route.name === 'AddItem') {
-        iconName = 'add-circle';
-      } else if (route.name === 'Sales') {
-        iconName = 'stats-chart';
-      } else if (route.name === 'Search') {
-        iconName = 'search';
-      }else if (route.name === 'Tournaments') {
-        iconName = 'trophy'; // İkon ismi Expo'nun Ionicons kütüphanesine uygun olmalı
-      } else if (route.name === 'Profile') {
-        iconName = 'person';
-      }
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarStyle: {
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          height: 100,
+        },
+        tabBarInactiveTintColor: '#d9d9d9',
+        tabBarActiveTintColor: '#ffffff',
+        headerShown: false,
+        tabBarLabelStyle: {
+          fontSize: 13,
+          marginBottom: 8,
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
 
-      return (
-        <View style={{ alignItems: 'center' }}>
-  
-          <Ionicons name={iconName} size={size} color={color} />
-        </View>
-      );
-    },
-    tabBarBackground: () => (
-      <Image
-        source={require('./assets/downpanel.png')}
-        style={{
-          width: '100%',
-          height: '100%',
+          if (route.name === 'Home') {
+            iconName = 'home';
+          } else if (route.name === 'Products') {
+            iconName = 'list';
+          } else if (route.name === 'AddItem') {
+            iconName = 'add-circle';
+          } else if (route.name === 'Sales') {
+            iconName = 'stats-chart';
+          } else if (route.name === 'Search') {
+            iconName = 'search';
+          } else if (route.name === 'Tournaments') {
+            iconName = 'trophy'; // İkon ismi Expo'nun Ionicons kütüphanesine uygun olmalı
+          } else if (route.name === 'Profile') {
+            iconName = 'person';
+          }
+
+          return (
+            <View style={{ alignItems: 'center' }}>
+
+              <Ionicons name={iconName} size={size} color={color} />
+            </View>
+          );
+        },
+        tabBarBackground: () => (
+          <Image
+            source={require('./assets/downpanel.png')}
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+            resizeMode="cover"
+          />
+        ),
+      })}
+    >
+      <Tab.Screen
+        name="Home"
+        component={userType === 'companies' ? ShufflePage : ShufflePage}
+        options={{
+          tabBarLabel: 'Home',
         }}
-        resizeMode="cover"
       />
-    ),
-  })}
->
-  <Tab.Screen
-    name="Home"
-    component={userType === 'companies' ? ShufflePage : ShufflePage}
-    options={{
-      tabBarLabel: 'Home',
-    }}
-  />
-<Tab.Screen
+      <Tab.Screen
         name="Search"
         component={Tournaments} // Turnuvalar bileşeni ShufflePage'e yönlendirilmiş.
         options={{
           tabBarLabel: 'Search',
         }}
       />
-<Tab.Screen
-  name="MyTournamentss"
-  component={MyTournamentsStack}
-  options={{
-    tabBarLabel: 'Rivals',
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="trophy" size={size} color={color} />
-    ),
-  }}
-/>
-<Tab.Screen
-  name="MyClub"
-  component={MyClubPage}
-  options={{
-    tabBarLabel: 'My Club',
-    tabBarIcon: ({ color, size }) => (
-      <Ionicons name="people" size={size} color={color} />
-    ),
-  }}
-/>
-
-
-
-
-
-
-  {userType === 'companies' && (
-    <>
       <Tab.Screen
-        name="Products"
-        component={ProductsStack}
+        name="Create Team"
+        component={CreaeteTeam} // Turnuvalar bileşeni ShufflePage'e yönlendirilmiş.
         options={{
-          tabBarLabel: 'Ürünlerim',
+          tabBarLabel: 'Team',
         }}
       />
- 
-
       <Tab.Screen
-        name="AddItem"
-        component={CompanyAddItem}
+        name="MyTournamentss"
+        component={MyTournamentsStack}
         options={{
-          tabBarLabel: 'Yeni Ürün',
+          tabBarLabel: 'Rivals',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trophy" size={size} color={color} />
+          ),
         }}
       />
-      
-    </>
-  )}
-  {userType !== 'companies' && (
-    <>
+      <Tab.Screen
+        name="MyClub"
+        component={MyClubPage}
+        options={{
+          tabBarLabel: 'My Club',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people" size={size} color={color} />
+          ),
+        }}
+      />
 
-    </>
-  )}
-  <Tab.Screen
-    name="Profile"
-    component={userType === 'companies' ? CompanyProfileScreen : ProfileScreen}
-    options={{
-      tabBarLabel: 'Profile',
-    }}
-  />
-</Tab.Navigator>
+
+
+
+
+
+      {userType === 'companies' && (
+        <>
+          <Tab.Screen
+            name="Products"
+            component={ProductsStack}
+            options={{
+              tabBarLabel: 'Ürünlerim',
+            }}
+          />
+
+
+          <Tab.Screen
+            name="AddItem"
+            component={CompanyAddItem}
+            options={{
+              tabBarLabel: 'Yeni Ürün',
+            }}
+          />
+
+        </>
+      )}
+      {userType !== 'companies' && (
+        <>
+
+        </>
+      )}
+      <Tab.Screen
+        name="Profile"
+        component={userType === 'companies' ? CompanyProfileScreen : ProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 
@@ -258,58 +266,58 @@ export default function App() {
 
   return (
     <NavigationContainer>
-    {isLoggedIn ? (
-      <Stack.Navigator>
-<Stack.Screen
-  name="HomeTabs"
-  component={HomeTabs}
-  options={{
-    headerShown: true,
-    headerTitle: '', // Başlığı tamamen kaldırır
-    headerLeft: () => (
-      <TouchableOpacity style={{ marginLeft: 15 }}>
-        <Image
-          source={require('./assets/adaptive-icon.png')} // Adaptif ikon
-          style={{ width: 60, height: 60 }}
-          resizeMode="contain"
-        />
-      </TouchableOpacity>
-    ),
-    headerBackground: () => (
-      <Image
-        source={require('./assets/downpanel.png')} // Arka plan
-        style={{ width: '100%', height: '100%' }}
-        resizeMode="cover"
-      />
-    ),
-  }}
-/>
+      {isLoggedIn ? (
+        <Stack.Navigator>
+          <Stack.Screen
+            name="HomeTabs"
+            component={HomeTabs}
+            options={{
+              headerShown: true,
+              headerTitle: '', // Başlığı tamamen kaldırır
+              headerLeft: () => (
+                <TouchableOpacity style={{ marginLeft: 15 }}>
+                  <Image
+                    source={require('./assets/adaptive-icon.png')} // Adaptif ikon
+                    style={{ width: 60, height: 60 }}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              ),
+              headerBackground: () => (
+                <Image
+                  source={require('./assets/downpanel.png')} // Arka plan
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              ),
+            }}
+          />
 
-        <Stack.Screen
-          name="Settings"
-          component={GraphScreen}
-          options={{
-            headerShown: true,
-            headerTitle: 'Ayarlar',
-            headerStyle: { backgroundColor: '#121212' },
-            headerTintColor: '#ffffff',
-            headerTitleStyle: { fontWeight: 'bold' },
+          <Stack.Screen
+            name="Settings"
+            component={GraphScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'Ayarlar',
+              headerStyle: { backgroundColor: '#121212' },
+              headerTintColor: '#ffffff',
+              headerTitleStyle: { fontWeight: 'bold' },
+            }}
+          />
+        </Stack.Navigator>
+      ) : (
+        <Stack.Navigator
+          screenOptions={{
+            contentStyle: { backgroundColor: '#121212' },
           }}
-        />
-      </Stack.Navigator>
-    ) : (
-      <Stack.Navigator
-        screenOptions={{
-          contentStyle: { backgroundColor: '#121212' },
-        }}
-      >
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="CompanySignup" component={CompanySignUpScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="CompanySignIn" component={CompanySignInScreen} options={{ headerShown: false }} />
-      </Stack.Navigator>
-    )}
-  </NavigationContainer>
+        >
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="CompanySignup" component={CompanySignUpScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="CompanySignIn" component={CompanySignInScreen} options={{ headerShown: false }} />
+        </Stack.Navigator>
+      )}
+    </NavigationContainer>
   );
 }
 
