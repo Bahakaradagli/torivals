@@ -9,10 +9,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes,listAll,deleteObject , getDownloadURL } from 'firebase/storage';
 import { useNavigation } from '@react-navigation/native';
 
+
+
+import LottieView from 'lottie-react-native';
+import * as Animatable from 'react-native-animatable';
+
 const TournamentDetails = ({ route }) => {
   const { tournament } = route.params;
   const tabs = ['General', 'Fixtures', 'Teams', 'Chat'];
-  const [selectedTab, setSelectedTab] = useState('Genel');
+  const [selectedTab, setSelectedTab] = useState('General');
   const [userType, setUserType] = useState('');
   const [subsStatus, setSubsStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -754,75 +759,76 @@ const TournamentDetails = ({ route }) => {
  
 
 let isRoundBeingCreated = false;
+
 const moveWinnersToNextRound = async (currentRoundIndex) => {
   if (isRoundBeingCreated) {
-      console.log("Tur oluşturma işlemi devam ediyor. Yeni tur oluşturulmadı.");
-      return;
-  }
-
- 
-  if (currentRoundIndex === 1) {
-      console.log("2. Turun oluşturulması engellendi.");
-      return;
+    console.log("Tur oluşturma işlemi devam ediyor. Yeni tur oluşturulmadı.");
+    return;
   }
 
   isRoundBeingCreated = true;
 
   try {
-      const currentRoundRef = ref(
-          database,
-          `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/rounds/${currentRoundIndex}`
-      );
+    const currentRoundRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/rounds/${currentRoundIndex}`
+    );
 
-      const currentRoundSnapshot = await get(currentRoundRef);
-      const matches = currentRoundSnapshot.val()?.matches || [];
+    const currentRoundSnapshot = await get(currentRoundRef);
+    const matches = currentRoundSnapshot.val()?.matches || [];
 
-      // Tüm maçların kazananlarının belirlenip belirlenmediğini kontrol et
-      const allMatchesHaveWinners = matches.every((match) => match.winner);
-      if (!allMatchesHaveWinners) {
-          console.log(`${currentRoundIndex}. Tur tamamlanmadı. Yeni tur oluşturulmadı.`);
-          return;
-      }
+    // Tüm maçların kazananlarının belirlenip belirlenmediğini kontrol et
+    const allMatchesHaveWinners = matches.every((match) => match.winner);
+    if (!allMatchesHaveWinners) {
+      console.log(`${currentRoundIndex}. Tur tamamlanmadı. Yeni tur oluşturulmadı.`);
+      return;
+    }
 
-      const winners = matches.map((match) => match.winner).filter(Boolean);
+    const winners = matches.map((match) => match.winner).filter(Boolean);
 
-      if (winners.length < 2) {
-          console.log("Yeni tur oluşturmak için yeterli kazanan yok.");
-          return;
-      }
+    if (winners.length < 2) {
+      console.log("Yeni tur oluşturmak için yeterli kazanan yok.");
+      return;
+    }
 
-      const nextRoundRef = ref(
-          database,
-          `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/rounds/${currentRoundIndex + 1}`
-      );
+    const nextRoundIndex = currentRoundIndex + 1;
+    const nextRoundRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/rounds/${nextRoundIndex}`
+    );
 
-      // Mevcut turların kontrolü
-      const nextRoundSnapshot = await get(nextRoundRef);
-      if (nextRoundSnapshot.exists()) {
-          console.log(`${currentRoundIndex + 1}. Round zaten mevcut.`);
-          return;
-      }
+    const nextRoundSnapshot = await get(nextRoundRef);
+    if (nextRoundSnapshot.exists()) {
+      console.log(`${nextRoundIndex}. Tur zaten mevcut.`);
+      return;
+    }
 
-      // Yeni tur eşleşmelerini oluştur
-      const nextRoundMatches = [];
-      for (let i = 0; i < winners.length; i += 2) {
-          nextRoundMatches.push({
-              id: (i / 2 + 1).toString(),
-              team1: winners[i],
-              team2: winners[i + 1] || "Bekleniyor",
-              team1Score: null,
-              team2Score: null,
-              winner: null,
-          });
-      }
+    // Yeni tur eşleşmelerini oluştur
+    const nextRoundMatches = [];
+    for (let i = 0; i < winners.length; i += 2) {
+      nextRoundMatches.push({
+        id: (i / 2 + 1).toString(),
+        team1: winners[i],
+        team2: winners[i + 1] || "Bekleniyor",
+        team1Score: null,
+        team2Score: null,
+        winner: null,
+      });
+    }
 
-      // Yeni turu Firebase'e kaydet
-      await update(nextRoundRef, { matches: nextRoundMatches });
-      console.log(`${currentRoundIndex + 1}. Tur başarıyla oluşturuldu.`);
+    // Yeni turu Firebase'e kaydet
+    await update(nextRoundRef, { matches: nextRoundMatches });
+    console.log(`${nextRoundIndex}. Tur başarıyla oluşturuldu.`);
+
+    // Eğer sadece bir kazanan kalmışsa turnuva bitmiştir
+    if (winners.length === 1) {
+      setTournamentWinner({ winner: winners[0], isFinal: true });
+      console.log("🏆 Turnuva Kazananı:", winners[0]);
+    }
   } catch (err) {
-      console.error("Hata:", err.message);
+    console.error("Hata:", err.message);
   } finally {
-      isRoundBeingCreated = false; // İşlem tamamlanınca bayrağı sıfırla
+    isRoundBeingCreated = false; // İşlem tamamlanınca bayrağı sıfırla
   }
 };
 
@@ -948,26 +954,24 @@ const createNextRound = async (currentRoundIndex) => {
   >
 
  
-
-
-    <View style={styles.detailsContainer}>
-      <Text style={styles.detailText}>
-        <Text style={styles.detailLabel}>Start Date: </Text>
-        {tournament.startDate ? formatDate(tournament.startDate) : 'Belirtilmemiş'}
-      </Text>
-      <Text style={styles.detailText}>
-        <Text style={styles.detailLabel}>Participation Fee: </Text>
-        {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}
-      </Text>
-
-      <View style={styles.podiumContainer}>
-  {/* 2. Podium */}
-  <View style={[styles.podium, styles.second]}>
-    <Text style={styles.podiumText}>2</Text>
-    <Text style={styles.gpText}>500 GP</Text>  
-  </View>
+<ScrollView style={styles.generalContainer}>
   
-  {/* 1. Podium */}
+          <Animatable.View animation="zoomIn" delay={400} style={styles.detailsContainer}>
+            <Text style={styles.detailText}><Text style={styles.detailLabel}>Start Date:</Text> {formatDate(tournament.startDate)}</Text>
+            <Text style={styles.detailText}><Text style={styles.detailLabel}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}</Text>
+            <Text style={styles.detailLabel}>Description:</Text>
+            <Text style={styles.generalDescription}>{tournament.tournamentDescription || 'There is no Description.'}</Text>
+            <View style={styles.detailsContainer}>
+
+
+<View style={styles.podiumContainer}>
+
+    <View style={[styles.podium, styles.second]}>
+      <Text style={styles.podiumText}>2</Text>
+      <Text style={styles.gpText}>500 GP</Text>  
+    </View>
+  
+ 
   <View style={[styles.podium, styles.first]}>
     <Text style={styles.podiumText}>1</Text>
     <Text style={styles.gpText}>1000 GP</Text>  
@@ -982,102 +986,114 @@ const createNextRound = async (currentRoundIndex) => {
 
 
 
-      <View style={styles.prizeContainer}>
-  <View style={styles.prizeBackground}>
-    <Text style={styles.prizeText}>
-      {tournament.participantCount &&
-      tournament.participationFee &&
-      tournament.prizePercentage
-        ? `${(
-            (tournament.participantCount *
-              tournament.participationFee *
-              tournament.prizePercentage) /
-            100
-          ).toFixed(2)} TL`
-        : '480 TL'}
-    </Text>
-  </View>
+<View style={styles.prizeContainer}>
+<View style={styles.prizeBackground}>
+<Text style={styles.prizeText}>
+{tournament.participantCount &&
+tournament.participationFee &&
+tournament.prizePercentage
+? `${(
+    (tournament.participantCount *
+      tournament.participationFee *
+      tournament.prizePercentage) /
+    100
+  )} TL`
+: '480 TL'}
+</Text>
+</View>
 </View>
 
 
-      <Text style={styles.detailLabel}>Description: </Text>
-      <Text style={styles.generalDescription}>
-        {tournament.tournamentDescription || 'There is no Description.'}
-      </Text>
-    </View>
+
+</View>
+          </Animatable.View>
+        </ScrollView>
+
+
   </ScrollView>
 )}
-
 
 
 
 {selectedTab === 'Fixtures' && (
   <ScrollView
     style={styles.bracketContainer}
-    contentContainerStyle={{ paddingBottom: 20 }} // Alt mesafe ekledik
+    contentContainerStyle={{ paddingBottom: 20 }} // Alt mesafe eklendi
   >
     {/* Eğer hiç maç yoksa */}
     {Object.keys(roundsData).length === 0 ? (
       <View style={styles.waitingContainer}>
-        <Text style={styles.waitingText}>Tournament has not started yet. Please wait...</Text>
+        <Text style={styles.waitingText}>
+          Tournament has not started yet. Please wait...
+        </Text>
       </View>
     ) : (
-      Object.keys(roundsData).map((roundKey, index) => (
-        <View key={index} style={styles.roundContainer}>
-          <Text style={styles.roundTitle}>{roundKey}. Round</Text>
-          {roundsData[roundKey]?.matches?.map((match, matchIndex) => (
-            
-<TouchableOpacity
-  key={matchIndex}
-  style={[
-    styles.matchContainer,
-    (match.team1 === companyName || match.team2 === companyName) && { borderColor: '#fff', borderWidth: 2 },
-  ]}
-  onPress={() => showMatchDetails(match, roundKey)} // Herkes detayları görebilir
->
-
-          
-              <Image
-                source={require('./assets/fixture_background.png')}
-                style={styles.backgroundVideo}
-                resizeMode="cover"
-                shouldPlay
-                isLooping
-                isMuted
-              />
-              <Text style={[
-                styles.teamText,
-                match.team1Score > match.team2Score ? { fontWeight: 'bold' } : null,
-              ]}>{match.team1 || "Waiting"}</Text>
-              <Text style={styles.scoreText}>
-                {match.team1Score != null && match.team2Score != null
-                  ? `${match.team1Score} - ${match.team2Score}`
-                  : "VS"}
-              </Text>
-              {isCompany && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSelectedMatch(match);
-                    setSelectedRoundKey(roundKey);
-                    setIsModalVisible(true);
-                  }}
-                  style={styles.editButton}
+      Object.keys(roundsData)
+        .map((key) => parseInt(key, 10)) // String olarak gelen tur numaralarını sayıya çevir
+        .sort((a, b) => a - b) // Sayısal olarak sıralama yap
+        .map((roundNumber, index) => (
+          <View key={index} style={styles.roundContainer}>
+            <Text style={styles.roundTitle}>{roundNumber}. Round</Text>
+            {roundsData[roundNumber]?.matches?.map((match, matchIndex) => (
+              <TouchableOpacity
+                key={matchIndex}
+                style={[
+                  styles.matchContainer,
+                  (match.team1 === companyName || match.team2 === companyName) && {
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                  },
+                ]}
+                onPress={() => showMatchDetails(match, roundNumber)} // Herkes detayları görebilir
+              >
+                <Image
+                  source={require('./assets/fixture_background2.png')}
+                  style={styles.backgroundVideo}
+                  resizeMode="cover"
+                  shouldPlay
+                  isLooping
+                  isMuted
+                />
+                <Text
+                  style={[
+                    styles.teamText,
+                    match.team1Score > match.team2Score ? { fontWeight: 'bold' } : null,
+                  ]}
                 >
-                  <Text style={styles.editButtonText}>Edit Score</Text>
-                </TouchableOpacity>
-              )}
-              <Text style={[
-                styles.teamText,
-                match.team1Score < match.team2Score ? { fontWeight: 'bold' } : null,
-              ]}>{match.team2}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ))
+                  {match.team1 || 'Waiting'}
+                </Text>
+                <Text style={styles.scoreText}>
+                  {match.team1Score != null && match.team2Score != null
+                    ? `${match.team1Score} - ${match.team2Score}`
+                    : 'VS'}
+                </Text>
+                {isCompany && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedMatch(match);
+                      setSelectedRoundKey(roundNumber);
+                      setIsModalVisible(true);
+                    }}
+                    style={styles.editButton}
+                  >
+                    <Text style={styles.editButtonText}>Edit Score</Text>
+                  </TouchableOpacity>
+                )}
+                <Text
+                  style={[
+                    styles.teamText,
+                    match.team1Score < match.team2Score ? { fontWeight: 'bold' } : null,
+                  ]}
+                >
+                  {match.team2}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))
     )}
   </ScrollView>
 )}
-
 
 <Modal
   transparent={true}
@@ -1263,7 +1279,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-
+  generalContainer: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 15, marginTop: 10 },
+  lottieContainer: { alignItems: 'center', justifyContent: 'center', height: 100 },
+  lottie: { width: 150, height: 150 },
 
   chatContainer: {
     flex: 1,
@@ -1413,13 +1431,6 @@ overlayContainer: {
     marginBottom: 10,
   },
   
-  generalContainer: {
-    flex: 1, // Sayfanın tam boyutunu kaplar
-    backgroundColor: '#000',
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 10,
-  },
   
 
   modalOverlay: {

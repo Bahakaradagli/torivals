@@ -192,11 +192,11 @@ const SwipeableCards: React.FC = () => {
     return (
       <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
         <TouchableOpacity style={StyleSheet.absoluteFillObject}>
-          <Image
-            source={imageMap[item.imageUrl] || require('./assets/deniz.jpg')}
-            style={styles.image}
-            resizeMode="cover"
-          />
+        <Image
+      source={imageMap[item.imageUrl] || require('./assets/deniz.jpg')}
+      style={styles.image}
+      resizeMode="cover"
+    />
         </TouchableOpacity>
 
 
@@ -281,14 +281,24 @@ const SwipeableCards: React.FC = () => {
 
 
 const styles = StyleSheet.create({
-  // Stil tanımlamaları aynı kalır
-  image: {
-    width: '110%',
-    height: '110%',
-    position: 'absolute',
-    top: '-5%',
-    left: '-5%',
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_WIDTH * 1.8,
+    marginHorizontal: SPACING / 2,
+    backgroundColor: '#000',
+    borderRadius: 20,
+  
+    // **📌 iOS İçin Mavi Gölge**
+    shadowColor: '#00343f', // Daha koyu mavi gölge
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.9,
+    shadowRadius: 15,
+  
+    // **📌 Android İçin Mavi Gölge**
+    elevation: 12, // Android gölge efekti
   },
+  
+ 
   joinButton: {
     backgroundColor: '#00343f',
     paddingVertical: 8,
@@ -343,7 +353,12 @@ const styles = StyleSheet.create({
     textAlign: 'center', // Ortala
     marginBottom: 10, // Alt boşluk
   },
- 
+  image: {
+    width: '100%',
+    height: '101.5%',
+    top:2,
+    borderRadius: 10, // **Artık borderRadius buraya değil, `imageContainer`'a**
+  },
   rating: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -361,20 +376,6 @@ const styles = StyleSheet.create({
   },
 
  
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH * 1.8,
-    marginHorizontal: SPACING / 2,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
   cardFooter: {
     width: '100%',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

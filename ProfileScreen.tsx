@@ -150,7 +150,6 @@ export default function ProfileScreen() {
   }
 };
 
-
 useEffect(() => {
   if (user) {
     const workExpRef = ref(db, 'users/' + user.uid + '/zzzCardInformation');
@@ -158,26 +157,11 @@ useEffect(() => {
     onValue(workExpRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        setCompanyName(data.companyName || { companyName: 'Not Set' });
+        setCompanyName(data.companyName?.companyName || "Not Set");
       }
     });
   }
 }, [user]);
-
-
-  const renderRightActions = (id, type) => (
-    <TouchableOpacity
-      onPress={() => {
-        if (type === 'work') handleDeleteWorkExperience(id);
-        else if (type === 'education') handleDeleteEducationExperience(id);
-        else if (type === 'project') handleDeleteProject(id);
-        else if (type === 'certificate') handleDeleteCertificate(id);
-      }}
-      style={styles.deleteButton}
-    >
-      <Text style={styles.deleteButtonText}>Delete</Text>
-    </TouchableOpacity>
-  );
 
  
 
@@ -372,8 +356,9 @@ useEffect(() => {
         <View style={styles.infoBox}>
   <Text style={styles.infoLabel}>EA Username</Text>
   <Text style={styles.profileText}>
-    {companyName?.companyName || "Not Set"}
-  </Text>
+  {typeof companyName === "object" && companyName !== null ? companyName.companyName : "Not Set"}
+</Text>
+
 </View>
 
           </View>

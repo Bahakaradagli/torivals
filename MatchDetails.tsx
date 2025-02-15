@@ -28,6 +28,78 @@ const MatchDetails = ({ route }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(user1);
+  const [userTeam, setUserTeam] = useState(null);
+  const [formation, setFormation] = useState("");
+  
+  const fetchUserTeam = async (userId) => {
+      try {
+          const db = getDatabase();
+          const teamRef = dbRef(db, `users/${userId}/MyTeam`);
+          const snapshot = await get(teamRef);
+  
+          if (snapshot.exists()) {
+              const teamData = snapshot.val();
+              setUserTeam(teamData.Players || {});
+              setFormation(teamData.formation || "4-4-2"); // Varsayılan formasyon
+              console.log("📌 Kullanıcı Takımı:", teamData);
+          } else {
+              console.warn("❌ Kullanıcı takımı bulunamadı!");
+          }
+      } catch (error) {
+          console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
+      }
+  };
+  
+  // 📌 Component yüklendiğinde kullanıcı takımını çek
+  useEffect(() => {
+      if (userId) {
+          fetchUserTeam(userId);
+      }
+  }, [userId]);
+  
+  const [opponentTeam, setOpponentTeam] = useState(null);
+  const [opponentFormation, setOpponentFormation] = useState("");
+  
+  const fetchOpponentTeam = async (opponentId) => {
+      try {
+          const db = getDatabase();
+          const teamRef = dbRef(db, `users/${opponentId}/MyTeam`);
+          const snapshot = await get(teamRef);
+  
+          if (snapshot.exists()) {
+              const teamData = snapshot.val();
+              console.log(`🎯 Rakip Takım (${opponentId}):`, teamData);
+  
+              setOpponentTeam(teamData.Players || {}); // Oyuncular
+              setOpponentFormation(teamData.formation || "4-4-2"); // Formasyon
+          } else {
+              console.warn(`❌ Rakip takım (${opponentId}) bulunamadı!`);
+          }
+      } catch (error) {
+          console.error("❌ Rakip takım bilgileri alınırken hata oluştu:", error);
+      }
+  };
+  
+  // 🚀 Kullanımı:
+  useEffect(() => {
+      if (selectedTeam === user1) {
+          fetchOpponentTeam(user1Id);
+      } else {
+          fetchOpponentTeam(user2Id);
+      }
+  }, [selectedTeam]);
+  
+
+useEffect(() => {
+  if (user1Id) {
+      fetchOpponentTeam(user1Id);
+  }
+  if (user2Id) {
+      fetchOpponentTeam(user2Id);
+  }
+}, [user1Id, user2Id]);
+
+
   useEffect(() => {
     const auth = getAuth();
     setUserId(auth.currentUser?.uid);
@@ -67,6 +139,86 @@ const MatchDetails = ({ route }) => {
       { id: 11, name: "LW", top: 20, left: 13 }, // Sol Kanat
     ],
   };
+
+
+  const formations = {
+    "4-4-2": [
+        { position: "GK", top: 80, left: 43 },
+        { position: "RB", top: 55, left: 83 },
+        { position: "RCB", top: 65, left: 58 },
+        { position: "LCB", top: 65, left: 28 },
+        { position: "LB", top: 55, left: 3 },
+        { position: "RM", top: 40, left: 78 },
+        { position: "RCM", top: 50, left: 58 },
+        { position: "LCM", top: 50, left: 28 },
+        { position: "LM", top: 40, left: 8 },
+        { position: "ST", top: 20, left: 55 },
+        { position: "ST", top: 20, left: 30 },
+    ],
+    "4-3-3": [
+        { position: "GK", top: 80, left: 43 },
+        { position: "RB", top: 55, left: 83 },
+        { position: "RCB", top: 65, left: 58 },
+        { position: "LCB", top: 65, left: 28 },
+        { position: "LB", top: 55, left: 3 },
+        { position: "CDM", top: 50, left: 43 },
+        { position: "RCM", top: 40, left: 58 },
+        { position: "LCM", top: 40, left: 28 },
+        { position: "RW", top: 20, left: 75 },
+        { position: "ST", top: 15, left: 43 },
+        { position: "LW", top: 20, left: 10 },
+    ],
+    "3-5-2": [
+        { position: "GK", top: 80, left: 43 },
+        { position: "RCB", top: 60, left: 65 },
+        { position: "CB", top: 60, left: 43 },
+        { position: "LCB", top: 60, left: 25 },
+        { position: "RWB", top: 50, left: 85 },
+        { position: "LWB", top: 50, left: 5 },
+        { position: "RCM", top: 35, left: 66 },
+        { position: "CDM", top: 40, left: 43 },
+        { position: "LCM", top: 35, left: 20 },
+        { position: "ST", top: 15, left: 55 },
+        { position: "ST", top: 15, left: 30 },
+    ],
+};
+
+
+
+  const [user1ProfileImage, setUser1ProfileImage] = useState(null);
+  const [user2ProfileImage, setUser2ProfileImage] = useState(null);
+  
+  const fetchProfileImages = async () => {
+      try {
+          const db = getDatabase();
+          
+          // User 1 profil fotoğrafını al
+          const user1Ref = dbRef(db, `users/${user1Id}/personalInfo/profileImage`);
+          const user1Snapshot = await get(user1Ref);
+          if (user1Snapshot.exists()) {
+              setUser1ProfileImage(user1Snapshot.val());
+          } else {
+              console.warn(`❌ Kullanıcı ${user1} için profil fotoğrafı bulunamadı!`);
+          }
+  
+          // User 2 profil fotoğrafını al
+          const user2Ref = dbRef(db, `users/${user2Id}/personalInfo/profileImage`);
+          const user2Snapshot = await get(user2Ref);
+          if (user2Snapshot.exists()) {
+              setUser2ProfileImage(user2Snapshot.val());
+          } else {
+              console.warn(`❌ Kullanıcı ${user2} için profil fotoğrafı bulunamadı!`);
+          }
+      } catch (error) {
+          console.error("❌ Profil fotoğrafları alınırken hata oluştu:", error);
+      }
+  };
+  
+  // 📌 Component yüklendiğinde profilleri çek
+  useEffect(() => {
+      fetchProfileImages();
+  }, [user1Id, user2Id]);
+  
 
   useEffect(() => {
     if (route.params) {
@@ -152,7 +304,7 @@ const MatchDetails = ({ route }) => {
               setMatchStatus(`${matchGameMinutes}'`);
           } else {
               // 📌 Maç bittiyse -> "ENDED"
-              setMatchStatus("ENDED");
+              setMatchStatus("Match Finished");
           }
       };
 
@@ -273,70 +425,105 @@ const getUserBorderColor = (username) => {
 };
 
 
+const [isScoreUploadAllowed, setIsScoreUploadAllowed] = useState(false);
 
+useEffect(() => {
+    const updateMatchStatus = () => {
+        const now = new Date();
 
+        if (now < matchStartTime) {
+            
+        } else if (now >= matchStartTime && now < matchEndTime) {
+            
+        } else {
+            setMatchStatus("Match Finished");
+
+            // **Score Upload Process Süresi** (Maç bittikten sonra 5 dakika)
+            const scoreUploadEndTime = new Date(matchEndTime.getTime() + 5 * 60 * 1000);
+            setIsScoreUploadAllowed(now < scoreUploadEndTime);
+        }
+    };
+
+    updateMatchStatus();
+    const interval = setInterval(updateMatchStatus, 1000);
+
+    return () => clearInterval(interval);
+}, []);
 
 const takePhotoAndUpload = async (folder) => {
-  if (!isPlayerAuthorized) {
-      Alert.alert("Unauthorized", "You can only upload photos for your own match.");
-      return;
-  }
+    if (!isPlayerAuthorized) {
+        Alert.alert("Unauthorized", "You can only upload photos for your own match.");
+        return;
+    }
 
-  try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      if (permissionResult.status !== 'granted') {
-          Alert.alert('Permission Denied', 'Camera access is required to take photos.');
-          return;
-      }
+    if (folder === 'scores' && !isScoreUploadAllowed) {
+        Alert.alert("Upload Disabled", "Score upload time has ended.");
+        return;
+    }
 
-      const result = await ImagePicker.launchCameraAsync({
-          allowsEditing: true,
-          aspect: [4, 3],
-          quality: 1,
-      });
+    try {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (permissionResult.status !== 'granted') {
+            Alert.alert('Permission Denied', 'Camera access is required to take photos.');
+            return;
+        }
 
-      if (result.canceled) {
-          console.log('Kullanıcı fotoğraf çekmedi.');
-          return;
-      }
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
 
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-          Alert.alert('Error', 'User is not logged in.');
-          return;
-      }
+        if (result.canceled) {
+            console.log('Kullanıcı fotoğraf çekmedi.');
+            return;
+        }
 
-      // 🔹 Kullanıcının `companyName` bilgisini al
-      const companyName = await getCompanyName(currentUser.uid);
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            Alert.alert('Error', 'User is not logged in.');
+            return;
+        }
 
-      const timestamp = Date.now(); // Zaman damgası
-      const photoUri = result.assets[0].uri;
-      const response = await fetch(photoUri);
-      const blob = await response.blob();
-      // 🔹 **Dosya adını oluştur:** `{companyName}-{timestamp}.jpg`
-      const fileName = `${companyName}-${timestamp}.jpg`;
-      const filePath = `TournamentPhotos/${user1Id}-${user2Id}/${folder}/${fileName}`;
-      const storageReference = storageRef(storage, filePath);
+        const companyName = await getCompanyName(currentUser.uid);
+        const timestamp = Date.now();
+        const photoUri = result.assets[0].uri;
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+        const fileName = `${companyName}-${timestamp}.jpg`;
+        const filePath = `TournamentPhotos/${user1Id}-${user2Id}/${folder}/${fileName}`;
+        const storageReference = storageRef(storage, filePath);
 
-      await uploadBytes(storageReference, blob);
-      const downloadURL = await getDownloadURL(storageReference);
+        await uploadBytes(storageReference, blob);
+        const downloadURL = await getDownloadURL(storageReference);
+        const fadeAnim = useRef(new Animated.Value(0)).current;
 
-      console.log('📸 Fotoğraf başarıyla yüklendi:', downloadURL);
-      Alert.alert('Success', 'Photo uploaded successfully!');
+        useEffect(() => {
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }).start();
+        }, []);
+        console.log('📸 Fotoğraf başarıyla yüklendi:', downloadURL);
+        Alert.alert('Success', 'Photo uploaded successfully!');
 
-      const newPhoto = { url: downloadURL, username: companyName };
+        const newPhoto = { url: downloadURL, username: companyName };
 
-      if (folder === 'spam') {
-          setSpamPhotos((prev) => [...prev, newPhoto]);
-      } else {
-          setScorePhotos((prev) => [...prev, newPhoto]);
-      }
-  } catch (error) {
-      console.error('❌ Fotoğraf yükleme hatası:', error);
-      Alert.alert('Error', error.message || 'Failed to upload the photo.');
-  }
+        if (folder === 'spam') {
+            setSpamPhotos((prev) => [...prev, newPhoto]);
+        } else {
+            setScorePhotos((prev) => [...prev, newPhoto]);
+        }
+    } catch (error) {
+        console.error('❌ Fotoğraf yükleme hatası:', error);
+        Alert.alert('Error', error.message || 'Failed to upload the photo.');
+    }
 };
+
+
+
 
   const tabs = ['General', 'Lineup', 'Stats', 'Photos'];
   const [selectedTab, setSelectedTab] = useState('General');
@@ -345,27 +532,29 @@ const takePhotoAndUpload = async (folder) => {
     <View style={styles.container}>
       {/* Üst Kısım: Maç Başlığı ve Skor */}
       <View style={styles.header}>
-      <Text style={styles.competition}>UEFA Champions League</Text>
+        
+      <Text style={styles.competition}>TORIVALS TOURNAMENT</Text>
         <Text style={styles.matchDate}>{matchStartTime.toLocaleString()}</Text>
 
 
         <View style={styles.teamSection}>
-          <View style={styles.teamContainer}>
-            <Image source={{ uri: `https://yourcdn.com/team-logos/${user1Id}.png` }} style={styles.teamLogo} />
-            <Text style={styles.teamName}>{user1}</Text>
-          </View>
+  <View style={styles.teamContainer}>
+    <Image source={{ uri: user1ProfileImage }} style={styles.teamLogo} />
+    <Text style={styles.teamName}>{user1}</Text>
+  </View>
 
-          <View style={styles.scoreContainer}>
-            <Text style={styles.score}>{team1Score}</Text>
-            <Text style={styles.vs}>v</Text>
-            <Text style={styles.score}>{team2Score}</Text>
-          </View>
+  <View style={styles.scoreContainer}>
+    <Text style={styles.score}>{team1Score}</Text>
+    <Text style={styles.vs}>-</Text>
+    <Text style={styles.score}>{team2Score}</Text>
+  </View>
 
-          <View style={styles.teamContainer}>
-            <Image source={{ uri: `https://yourcdn.com/team-logos/${user2Id}.png` }} style={styles.teamLogo} />
-            <Text style={styles.teamName}>{user2}</Text>
-          </View>
-        </View>
+  <View style={styles.teamContainer}>
+    <Image source={{ uri: user2ProfileImage }} style={styles.teamLogo} />
+    <Text style={styles.teamName}>{user2}</Text>
+  </View>
+</View>
+
         <Text style={styles.matchStatus}>{matchStatus}</Text>
       </View>
 
@@ -414,37 +603,80 @@ const takePhotoAndUpload = async (folder) => {
 
       {/* 📌 Saha Görseli ve Oyuncular */}
       <View style={styles.lineupContainer}>
-        <Image source={require("./assets/Pitch.png")} style={styles.lineupImage} />
+    <Image source={require("./assets/Pitch.png")} style={styles.lineupImage} />
 
-        {/* 📌 Seçili takımın oyuncuları */}
-        {teamPlayers[selectedTeam].map((player) => (
-          <Animated.View
-            key={player.id}
-            style={[
-              styles.playerPosition,
-              {
-                top: `${player.top}%`,
-                left: `${player.left}%`,
-                borderColor: teamColors[selectedTeam],
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <Text style={styles.playerText}>{player.name}</Text>
-          </Animated.View>
-        ))}
-      </View>
+    {/* 📌 Seçili takımın oyuncularını formasyona göre diziyoruz */}
+    {opponentTeam &&
+        formations[opponentFormation]?.map((pos, index) => {
+            // Kullanıcının oyuncularını sırayla pozisyonlara atama
+            const playerKey = `Player${index + 1}`;
+            const playerData = opponentTeam[playerKey];
+
+            if (!playerData) return null;
+
+            return (
+                <Animated.View
+                    key={index}
+                    style={[
+                        styles.playerPosition,
+                        {
+                            top: `${pos.top}%`,
+                            left: `${pos.left}%`,
+                            borderColor: teamColors[selectedTeam],
+                            opacity: fadeAnim,
+                            transform: [{ translateY: slideAnim }],
+                        },
+                    ]}
+                >
+                    <Image
+                        source={{ uri: playerData.playerImage }}
+                        style={styles.playerImage}
+                    />
+                    <Text style={styles.playerText}>{playerData.playerName}</Text>
+                </Animated.View>
+            );
+        })}
+</View>
+
 </View>
 
     )}
 
-        {selectedTab === 'Stats' && (
-          <View>
-            <Text style={styles.sectionTitle}>Match Stats</Text>
-            <Text style={styles.matchInfo}>Possession, shots, and other statistics will be displayed here.</Text>
+{selectedTab === 'Stats' && (
+  <View style={styles.statsContainer}>
+    <Text style={styles.sectionTitle}>Match Stats</Text>
+
+    {[
+      { player1: 66, player2: 34, max: 100, label: "Topla Oynama (%)" },
+      { player1: 14, player2: 7, max: 21, label: "Toplam Şut" },
+      { player1: 3, player2: 3, max: 6, label: "İsabetli Şut" },
+      { player1: 7, player2: 3, max: 10, label: "İsabetsiz Şut" },
+      { player1: 0.80, player2: 1.65, max: 2, label: "Gol Beklentisi (xG)" },
+      { player1: 24, player2: 15, max: 30, label: "Ceza Sahasında Buluşma" },
+    ].map((stat, index) => {
+      // Yüzdelik hesapla (Örn: 7 / 21 * 100)
+      const player1Percentage = (stat.player1 / stat.max) * 100;
+      const player2Percentage = (stat.player2 / stat.max) * 100;
+
+      return (
+        <View key={index} style={styles.statRow}>
+          <Text style={styles.statLabel}>{stat.label}</Text>
+
+          <View style={styles.barContainer}>
+            <Animated.View style={[styles.statBar, styles.player1Bar, { width: `${player1Percentage}%` }]} />
+            <Animated.View style={[styles.statBar, styles.player2Bar, { width: `${player2Percentage}%` }]} />
           </View>
-        )}
+
+          <View style={styles.statNumbers}>
+            <Text style={styles.player1Stat}>{stat.player1}</Text>
+            <Text style={styles.player2Stat}>{stat.player2}</Text>
+          </View>
+        </View>
+      );
+    })}
+  </View>
+)}
+
 
             {selectedTab === 'Photos' && (
                     <View>
@@ -481,23 +713,23 @@ const takePhotoAndUpload = async (folder) => {
         </View>
 
         <View style={styles.photoSection}>
-          <Text style={styles.sectionTitle}>Score Photos</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {scorePhotos.map((photo, index) => (
-        <View key={index} style={styles.photoContainer}>
-            <TouchableOpacity onPress={() => { setSelectedPhoto(photo); setIsModalVisible(true); }}>
-                <Image source={{ uri: photo.url }} style={[styles.uploadedPhoto, { borderColor: photo.borderColor }]} />
-            </TouchableOpacity>
-           
-        </View>
-    ))}
-            {isPlayerAuthorized && (
-              <TouchableOpacity style={styles.uploadCard} onPress={() => takePhotoAndUpload('scores')}>
+    <Text style={styles.sectionTitle}>Score Photos</Text>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {scorePhotos.map((photo, index) => (
+            <View key={index} style={styles.photoContainer}>
+                <TouchableOpacity onPress={() => { setSelectedPhoto(photo); setIsModalVisible(true); }}>
+                    <Image source={{ uri: photo.url }} style={[styles.uploadedPhoto, { borderColor: photo.borderColor }]} />
+                </TouchableOpacity>
+            </View>
+        ))}
+        {isPlayerAuthorized && isScoreUploadAllowed && (
+            <TouchableOpacity style={styles.uploadCard} onPress={() => takePhotoAndUpload('scores')}>
                 <Text style={styles.uploadCardText}>+</Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        </View>
+            </TouchableOpacity>
+        )}
+    </ScrollView>
+</View>
+
       </ScrollView>
 
                     </View>
@@ -509,14 +741,115 @@ const takePhotoAndUpload = async (folder) => {
 };
 
 const styles = StyleSheet.create({
+
+
+  statsContainer: {
+    padding: 15,
+    backgroundColor: '#121212',
+    borderRadius: 10,
+  },
+  
+  statRow: {
+    marginVertical: 10,
+  },
+  
+  statLabel: {
+    fontSize: 14,
+    color: '#FFF',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  
+  barContainer: {
+    flexDirection: 'row',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: '#333',
+  },
+  
+  statBar: {
+    height: '100%',
+  },
+  
+  player1Bar: {
+    backgroundColor: '#00003B', // Mavi
+  },
+  
+  player2Bar: {
+    backgroundColor: '#8B0000', // Kırmızı
+  },
+  
+  statNumbers: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  
+  player1Stat: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  
+  player2Stat: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  
+ 
     usernameText: {
         color: '#FFCC00',
         fontSize: 12,
         textAlign: 'center',
         marginTop: 5,
     },
-
-
+    
+    statValue: {
+      color: '#FFF',
+      fontSize: 16,
+      width: 40,
+      textAlign: 'center',
+    },
+   
+    bar: {
+      height: '100%',
+    },
+    playerPosition: {
+      position: "absolute",
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: "#000", // 🔹 Daire rengi siyah yapıldı
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: "#ffcc00", // 🔹 Çerçeve rengi sarı
+      transform: [{ translateX: -22 }, { translateY: -22 }],
+      shadowColor: "#ffcc00", // 🔹 Shadow frame ile aynı renk
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.7,
+      shadowRadius: 5,
+      elevation: 6, // 🔹 Android için shadow efekti
+  },
+  playerImage: {
+      width: 55,
+      height: 55,
+      borderRadius: 22.5,
+  },
+  playerText: {
+      color: "#FFF", // 🔹 Oyuncu isimleri beyaz yapıldı
+      fontWeight: "bold",
+      fontSize: 10,
+      textAlign: "center",
+      marginTop: 5,
+      textShadowColor: "#ffcc00", // 🔹 Yazının arkasına gölge eklendi
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 4,
+  },
+    
+   
     
     container: { flex: 1, backgroundColor: '#000', padding: 15 },
     photoSection: { marginBottom: 20, padding: 10, borderRadius: 10, backgroundColor: "#121212" },
@@ -531,9 +864,8 @@ const styles = StyleSheet.create({
     closeModal: { position: 'absolute', top: 40, right: 20 },
     photoDescription: { color: 'white', marginTop: 10, textAlign: 'center', fontSize: 16 },
     lineupContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      
+    alignItems: 'center',
+    justifyContent: 'center', 
   },
   teamSelection: {
     flexDirection: "row",
@@ -567,33 +899,13 @@ const styles = StyleSheet.create({
   },
 
   // 📌 Saha Görseli ve Oyuncular
-  lineupContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 20,
-  },
+  
   lineupImage: {
     width: "150%",
     height: 350,
     resizeMode: "contain",
   },
-  playerPosition: {
-    position: "absolute",
-    width: 45,
-    height: 45,
-    borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#ffcc00",
-    transform: [{ translateX: -22 }, { translateY: -22 }],
-  },
-  playerText: {
-    color: "#000",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
+  
 
       photoContainer: {
         alignItems: 'center',
@@ -626,7 +938,7 @@ const styles = StyleSheet.create({
       },
 
   header: {
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#111111',
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
@@ -648,17 +960,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  teamLogo: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginBottom: 5,
-  },
-  teamName: {
-    color: '#FFF',
-    fontSize: 16,
-    textAlign: 'center',
-  },
+
   scoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,11 +969,11 @@ const styles = StyleSheet.create({
   },
   score: {
     fontSize: 32,
-    fontWeight: 'bold',
     color: '#FFF',
     marginHorizontal: 5,
   },
   vs: {
+    fontWeight: 'bold',
     fontSize: 18,
     color: '#FFF',
     marginHorizontal: 5,
@@ -685,7 +987,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 20,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#121212',
   },
   tabButtonSelected: {
     backgroundColor: '#FFF',
@@ -720,10 +1022,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#444',
   },
-  playerText: {
-    color: '#FFF',
-    fontSize: 16,
-  },
+ 
   rating: {
     color: '#FFD700',
     fontWeight: 'bold',
