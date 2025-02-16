@@ -59,7 +59,7 @@ const PlayerRequest: React.FC<PlayerRequestProps> = ({ onSelect }) => {
   const fetchPlayers = useCallback(async () => {
     try {
       const response = await fetch(
-        'https://iardnipdeqgxjkduvkwx.supabase.co/storage/v1/object/public/json-files/players_data.json'
+        'https://iardnipdeqgxjkduvkwx.supabase.co/storage/v1/object/public/json-files//players_data.json'
       );
 
       if (!response.ok) throw new Error('Veri alınamadı');

@@ -10,9 +10,80 @@ import {
   TextInput
 } from "react-native";
 import PlayerRequest from "./API/footbalPlayerRequest";
-
-
 const { width, height } = Dimensions.get("window");
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+import { getAuth } from 'firebase/auth';
+import { getDatabase, ref, push, set } from 'firebase/database';
+
+const saveTeamToFirebase = (squad, selectedFormation) => {
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) {
+    console.error("User not authenticated");
+    return;
+  }
+
+  const db = getDatabase();
+  const userTeamRef = (ref(db, `users/${user.uid}/MyTeam`));
+
+  // Tüm oyuncuları tek bir array'de topla
+  const allPlayers = [
+    squad.goalkeeper,
+    ...squad.defense,
+    ...squad.midfield,
+    ...squad.forwards
+  ].filter(player => player !== null && player !== undefined);
+
+  console.log("All Players:", allPlayers.map(p => Number(p.player_info.Overall))); // Sayıya çevrildi
+
+  const totalOverall = allPlayers.length > 0
+    ? Math.round(allPlayers.reduce((sum, player) => sum + Number(player.player_info.Overall || 0), 0) / allPlayers.length)
+    : 0; // 11 yerine gerçek oyuncu sayısına böl
+
+  console.log("sum", totalOverall);
+
+
+
+
+  const playersData = {};
+  allPlayers.forEach((player, index) => {
+    playersData[`Player${index + 1}`] = {
+      cardName: player?.card_name || "Default",  // `player_info` içinde değil, direkt erişilmeli
+      cardThema: player?.card_thema || "Default",
+      playerName: player?.player_info?.Name || "Unknown",
+      overall: parseInt(player?.player_info?.Overall, 10) || 0, // String yerine tam sayı yap
+      playerImage: player?.images?.["Player Card"] || "", // Boşluklu key için [] kullan
+      position: player?.player_info?.Position || "Unknown"
+    };
+  });
+
+  const teamData = {
+    formation: selectedFormation,
+    totalOverall,
+    Players: playersData
+  };
+
+  set(userTeamRef, teamData)
+    .then(() => console.log("Team saved successfully!"))
+    .catch(error => console.error("Error saving team:", error));
+};
+
+const formatPlayerData = (player) => {
+  console.log("Gelen oyuncu verisi:", player?.player_info); // Debug için ekledim
+  return {
+    name: player?.player_info?.Name || "Unknown",
+    overall: player?.player_info?.Overall || 0,
+    position: player?.player_info?.Position || "Unknown",
+    cardName: player?.player_info?.CardName || "Default",
+    cardThema: player?.player_info?.CardThema || "Default",
+    playerImage: player?.player_info?.PlayerImage || ""
+  };
+};
+
+
+
 
 const categoryMap = {
   goalkeeper: 'Goalkeeper',
@@ -95,6 +166,7 @@ const formations = {
 };
 
 const FootballField = () => {
+  const [selectedPlayers, setSelectedPlayers] = useState(new Set());
   const [selectedFormation, setSelectedFormation] = useState("4-4-2");
   const [fieldDimensions, setFieldDimensions] = useState({ width: 0, height: 0 });
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -109,6 +181,47 @@ const FootballField = () => {
     const { width, height } = event.nativeEvent.layout;
     setFieldDimensions({ width, height });
   }, []);
+
+  const handlePlayerSelect = (card) => {
+    if (!selectedPlayer) return;
+    const { category, positionIndex } = selectedPlayer;
+
+    // Eğer oyuncu daha önce seçilmişse, uyarı ver.
+    if (selectedPlayers.has(card.player_info.Name)) {
+      alert("Bu oyuncu zaten seçildi! Lütfen başka bir oyuncu seçin.");
+      return;
+    }
+
+    setSquad(prev => {
+      const newSquad = { ...prev };
+      let previousPlayer = null;
+
+      if (category === 'goalkeeper') {
+        previousPlayer = newSquad.goalkeeper;
+        newSquad.goalkeeper = card;
+      } else {
+        const positions = [...newSquad[category]];
+        previousPlayer = positions[positionIndex];
+        positions[positionIndex] = card;
+        newSquad[category] = positions;
+      }
+
+      setSelectedPlayer(null);
+
+      // Seçilen oyuncular listesine yeni oyuncuyu ekle, eğer önceki oyuncu varsa çıkar.
+      setSelectedPlayers(prevPlayers => {
+        const updatedPlayers = new Set(prevPlayers);
+        if (previousPlayer) {
+          updatedPlayers.delete(previousPlayer.player_info.Name);
+        }
+        updatedPlayers.add(card.player_info.Name);
+        return updatedPlayers;
+      });
+
+      return newSquad;
+    });
+  };
+
 
   const renderPlayers = () => {
     if (!fieldDimensions.width || !fieldDimensions.height) return null;
@@ -137,7 +250,9 @@ const FootballField = () => {
                 top: pos.y * fieldDimensions.height - 20,
               }
             ]}
+
           >
+
             <Text style={styles.playerNumber}>
               {playerData?.player_info?.Overall || index + 1}
             </Text>
@@ -165,7 +280,9 @@ const FootballField = () => {
   };
 
   return (
+
     <View style={styles.container}>
+
       {/* Formasyon seçiciyi ekranın üstünde sabitle */}
       <View style={styles.formationSelectorContainer}>
         <ScrollView
@@ -194,7 +311,7 @@ const FootballField = () => {
       </View>
 
 
-      <View style={styles.rectangle}>
+      <View style={[styles.rectangle]}>
         <View style={styles.spectatorArea}>
           <View style={styles.spectators}></View>
         </View>
@@ -210,31 +327,24 @@ const FootballField = () => {
             {renderPlayers()}
           </View>
         </View>
+        {/* Kayıt Butonu */}
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() => saveTeamToFirebase(squad, selectedFormation)}>
+          <Ionicons name="save-outline" size={24} color="white" />
+        </TouchableOpacity>
       </View>
       {/* Oyuncu Detay Modalı */}
       <Modal visible={!!selectedPlayer}>
         <View style={styles.modalContent}>
           <PlayerRequest
-            onSelect={(card) => {
-              if (selectedPlayer) {
-                const { category, positionIndex } = selectedPlayer;
-                setSquad(prev => {
-                  const newSquad = { ...prev };
-                  if (category === 'goalkeeper') {
-                    newSquad.goalkeeper = card;
-                  } else {
-                    const positions = [...newSquad[category]];
-                    positions[positionIndex] = card;
-                    newSquad[category] = positions;
-                  }
-                  return newSquad;
-                });
-                setSelectedPlayer(null);
-              }
-            }}
+            onSelect={handlePlayerSelect}
           />
+
         </View>
       </Modal>
+
+
     </View>
   );
 };
@@ -243,7 +353,10 @@ const FootballField = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center"
   },
   formationSelectorContainer: {
     height: 70, // Sabit yükseklikW
@@ -330,11 +443,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   rectangle: {
+
     width: width, // Genişlik
     height: height, // Yükseklik
-    backgroundColor: 'white', // Saha rengi
+    backgroundColor: 'transparent', // Saha rengi
     justifyContent: "center",
     alignItems: "center",
+    transform: [{ scaleY: 0.8 }],
+    marginTop: -40
+
   },
   spectatorArea: {
     position: 'absolute',
@@ -441,6 +558,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  saveButton: {
+    position: 'absolute',
+    right: 15,
+    top: 15,
+    backgroundColor: '#007AFF',
+    padding: 10,
+    borderRadius: 10,
+    zIndex: 1000,
+  }
 });
 
 export default FootballField;
