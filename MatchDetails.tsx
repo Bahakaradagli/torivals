@@ -603,7 +603,7 @@ const takePhotoAndUpload = async (folder) => {
 
       {/* 📌 Saha Görseli ve Oyuncular */}
       <View style={styles.lineupContainer}>
-    <Image source={require("./assets/Pitch.png")} style={styles.lineupImage} />
+    <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
 
     {/* 📌 Seçili takımın oyuncularını formasyona göre diziyoruz */}
     {opponentTeam &&
