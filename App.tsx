@@ -182,13 +182,7 @@ function HomeTabs() {
           tabBarLabel: 'Search',
         }}
       />
-      <Tab.Screen
-        name="Create Team"
-        component={CreaeteTeam} // Turnuvalar bileşeni ShufflePage'e yönlendirilmiş.
-        options={{
-          tabBarLabel: 'Team',
-        }}
-      />
+
       <Tab.Screen
         name="MyTournamentss"
         component={MyTournamentsStack}
@@ -199,18 +193,18 @@ function HomeTabs() {
           ),
         }}
       />
+ 
+
       <Tab.Screen
-        name="MyClub"
-        component={MyClubPage}
+        name="Team"
+        component={CreaeteTeam}
         options={{
-          tabBarLabel: 'My Club',
+          tabBarLabel: 'Team',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
         }}
       />
-
-
 
 
 

@@ -201,9 +201,13 @@ const MyTournaments = () => {
         );
       case 'My Cups':
         return (
-          <View style={styles.centeredContent}>
-            <Text style={styles.noData}>Kupalarınız burada listelenecek.</Text>
-          </View>
+ <View style={styles.container2}>
+ 
+      <Text style={styles.title2}>Coming Soon!</Text>
+      <Text style={styles.description}>
+        We're working hard to bring you something amazing. Stay tuned for updates!
+      </Text> 
+    </View>
         );
       default:
         return (
@@ -244,6 +248,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
     padding: 15,
+  },
+  container2: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#000",
+    padding: 20,
+  },
+  description: {
+    fontSize: 16,
+    color: "#ccc",
+    textAlign: "center",
+    marginBottom: 20,
   },
   totalContainer: {
     flexDirection: 'row',
@@ -315,6 +332,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  title2: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 10,
   },
   date: {
     fontSize: 14,

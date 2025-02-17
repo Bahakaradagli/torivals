@@ -157,7 +157,7 @@ useEffect(() => {
     onValue(workExpRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        setCompanyName(data.companyName?.companyName || "Not Set");
+        setCompanyName(data.companyName.companyName || "Not Set");
       }
     });
   }
@@ -356,8 +356,9 @@ useEffect(() => {
         <View style={styles.infoBox}>
   <Text style={styles.infoLabel}>EA Username</Text>
   <Text style={styles.profileText}>
-  {typeof companyName === "object" && companyName !== null ? companyName.companyName : "Not Set"}
+  {companyName && typeof companyName === "object" ? JSON.stringify(companyName?.companyName) : companyName || "Not Set"}
 </Text>
+
 
 </View>
 

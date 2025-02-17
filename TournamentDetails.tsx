@@ -1202,24 +1202,27 @@ tournament.prizePercentage
 </Modal>
 {selectedTab === 'Teams' && (
   <View style={styles.table}>
-
+    {/* Başlık Satırı */}
     <View style={styles.headerRow}>
       <Text style={[styles.headerCell, styles.rank]}>#</Text>
       <Text style={[styles.headerCell, styles.team]}>Takım İsmi</Text>
     </View>
+
     <FlatList
       data={teamsData} // TeamsData içindeki veriyi kullanıyoruz
       keyExtractor={(item) => item.id}
       renderItem={({ item, index }) => (
-        <View style={styles.row}>
+        <View style={[styles.row, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
           <Text style={[styles.cell, styles.rank]}>{index + 1}</Text>
           <Text style={[styles.cell, styles.team]}>{item.team}</Text>
         </View>
       )}
+      contentContainerStyle={{ paddingBottom: 50 }} // Altta ekstra boşluk bırak
+      keyboardShouldPersistTaps="handled" // Kaydırmayı düzgünleştir
+      showsVerticalScrollIndicator={false} // Kaydırma çubuğunu gizle
     />
   </View>
 )}
-
 
 
 
@@ -1263,6 +1266,57 @@ tournament.prizePercentage
 
 const styles = StyleSheet.create({
 
+  table: {
+    backgroundColor: '#000',
+    borderRadius: 10,
+    padding: 10,
+    margin: 10,
+    marginBottom:100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#121212',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  headerCell: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  rank: {
+    width: 40,
+    textAlign: 'center',
+  },
+  team: {
+    flex: 1,
+    textAlign: 'left',
+    paddingLeft: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  evenRow: {
+    backgroundColor: '#000',
+  },
+  oddRow: {
+    backgroundColor: '#121212',
+  },
+  cell: {
+    fontSize: 15,
+    color: '#fff',
+  },
 
   winnerContainer: {
     marginTop: 20,
@@ -1648,11 +1702,6 @@ overlayContainer: {
         color: '#121212',
         fontWeight: 'bold',
       },
-      table: {
-        backgroundColor: '#000',
-        borderRadius: 10,
-        padding: 5,
-      },
       roundContainer: {
         marginBottom: 20,
       },
@@ -1664,18 +1713,6 @@ overlayContainer: {
         textAlign: 'center',
         marginBottom: 10,
       },
-      row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
-      },
-      cell: {
-        flex: 1,
-        color: '#fff',
-        textAlign: 'center',
-      },
-
-
     bracketContainer: {
         padding: 10,
         backgroundColor: '#000',
@@ -1710,29 +1747,6 @@ overlayContainer: {
     fontSize: 14,
     color: '#fff',
     lineHeight: 20,
-  },
-  
-  headerRow: {
-    flexDirection: 'row',
-    marginBottom:15,
-    borderBottomWidth: 0.8,
-    borderBottomColor: '#fff',
-    paddingVertical: 10,
-  },
-  headerCell: {
-    flex: 1,
-    color: '#FFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
- 
-  rank: {
-    flex: 0.5,
-  },
-  team: {
-    flex: 2,
-    textAlign: 'left',
-    paddingLeft: 10,
   },
   tabContent: {
     color: '#fff',

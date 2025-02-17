@@ -30,7 +30,146 @@ const MatchDetails = ({ route }) => {
   const [selectedTeam, setSelectedTeam] = useState(user1);
   const [userTeam, setUserTeam] = useState(null);
   const [formation, setFormation] = useState("");
-  
+  const [player1Stats, setPlayer1Stats] = useState(null);
+const [player2Stats, setPlayer2Stats] = useState(null);
+const [player1TotalPrize, setPlayer1TotalPrize] = useState(0);
+const [player2TotalPrize, setPlayer2TotalPrize] = useState(0);
+const [player1TotalXP, setPlayer1TotalXP] = useState(0);
+const [player2TotalXP, setPlayer2TotalXP] = useState(0);
+
+const fetchTotalPrize = async (playerId, setTotalPrize) => {
+  try {
+    const db = getDatabase();
+    const tournamentsRef = dbRef(db, `users/${playerId}/tournaments`);
+    const snapshot = await get(tournamentsRef);
+
+    if (snapshot.exists()) {
+      const tournaments = snapshot.val();
+      const totalPrize = Object.values(tournaments).reduce((sum, t) => sum + (t.prize || 0), 0);
+      setTotalPrize(totalPrize);
+    } else {
+      setTotalPrize(0);
+    }
+  } catch (error) {
+    console.error(`❌ ${playerId} için ödül verisi alınırken hata oluştu:`, error);
+  }
+};
+
+const fetchTotalXP = async (playerId, setTotalXP) => {
+  try {
+    const db = getDatabase();
+    const tournamentsRef = dbRef(db, `users/${playerId}/tournaments`);
+    const snapshot = await get(tournamentsRef);
+
+    if (snapshot.exists()) {
+      const tournaments = snapshot.val();
+      const totalXP = Object.values(tournaments).reduce((sum, t) => sum + (t.xp || 0), 0);
+      setTotalXP(totalXP);
+    } else {
+      setTotalXP(0);
+    }
+  } catch (error) {
+    console.error(`❌ ${playerId} için XP verisi alınırken hata oluştu:`, error);
+  }
+};
+
+const fetchPlayerStats = async (playerId, setPlayerStats) => {
+    try {
+        const db = getDatabase();
+        const playerRef = dbRef(db, `users/${playerId}/tournamentStats`);
+        const snapshot = await get(playerRef);
+
+        if (snapshot.exists()) {
+            const stats = snapshot.val();
+            setPlayerStats({
+                tournamentsPlayed: stats.tournamentsPlayed || 0,
+                trophiesWon: stats.trophiesWon || 0
+            });
+        } else {
+            setPlayerStats({
+                tournamentsPlayed: 0,
+                trophiesWon: 0
+            });
+        }
+    } catch (error) {
+        console.error(`❌ ${playerId} için turnuva verileri alınırken hata oluştu:`, error);
+    }
+};
+
+
+const [player1Tournaments, setPlayer1Tournaments] = useState(0);
+  const [player2Tournaments, setPlayer2Tournaments] = useState(0);
+  const [player1Trophies, setPlayer1Trophies] = useState(0);
+  const [player2Trophies, setPlayer2Trophies] = useState(0);
+
+  const fetchTournamentsPlayed = async (playerId, setTournamentsPlayed) => {
+    try {
+        const db = getDatabase();
+        const tournamentsRef = dbRef(db, `users/${playerId}/MyTournaments`);
+        const snapshot = await get(tournamentsRef);
+
+        if (snapshot.exists()) {
+            const tournaments = snapshot.val();
+            const tournamentCount = Object.keys(tournaments).length;
+            setTournamentsPlayed(tournamentCount);
+        } else {
+            setTournamentsPlayed(0);
+        }
+    } catch (error) {
+        console.error(`❌ ${playerId} için turnuva katılım verisi alınırken hata oluştu:`, error);
+    }
+};
+
+const fetchTrophiesWon = async (playerId, setTrophiesWon) => {
+  try {
+      const db = getDatabase();
+      const tournamentsRef = dbRef(db, `users/${playerId}/tournaments`);
+      const snapshot = await get(tournamentsRef);
+
+      if (snapshot.exists()) {
+          const tournaments = snapshot.val();
+          const wonTrophies = Object.values(tournaments).filter(t => t.prize > 0).length;
+          setTrophiesWon(wonTrophies);
+      } else {
+          setTrophiesWon(0);
+      }
+  } catch (error) {
+      console.error(`❌ ${playerId} için ödül verisi alınırken hata oluştu:`, error);
+  }
+};
+
+
+useEffect(() => {
+  if (user1Id) {
+    fetchTournamentsPlayed(user1Id, setPlayer1Tournaments);
+    fetchTrophiesWon(user1Id, setPlayer1Trophies);
+    fetchTotalPrize(user1Id, setPlayer1TotalPrize);
+    fetchTotalXP(user1Id, setPlayer1TotalXP);
+  }
+  if (user2Id) {
+    fetchTournamentsPlayed(user2Id, setPlayer2Tournaments);
+    fetchTrophiesWon(user2Id, setPlayer2Trophies);
+    fetchTotalPrize(user2Id, setPlayer2TotalPrize);
+    fetchTotalXP(user2Id, setPlayer2TotalXP);
+  }
+}, [user1Id, user2Id]);
+
+
+
+
+
+
+
+
+
+
+
+// 📌 Component yüklendiğinde turnuva istatistiklerini al
+useEffect(() => {
+    if (user1Id) fetchPlayerStats(user1Id, setPlayer1Stats);
+    if (user2Id) fetchPlayerStats(user2Id, setPlayer2Stats);
+}, [user1Id, user2Id]);
+
   const fetchUserTeam = async (userId) => {
       try {
           const db = getDatabase();
@@ -521,8 +660,100 @@ const takePhotoAndUpload = async (folder) => {
         Alert.alert('Error', error.message || 'Failed to upload the photo.');
     }
 };
+const getMatchSummary = () => {
+  const goalDifference = Math.abs(team1Score - team2Score);
+  const totalTournamentsUser1 = player1Tournaments;
+  const totalTournamentsUser2 = player2Tournaments;
+  const totalTrophiesUser1 = player1Trophies;
+  const totalTrophiesUser2 = player2Trophies;
 
+  // **🏆 Turnuva Başarıları**
+  const tournamentInfo = (user, tournaments, trophies) => {
+      return `${user} has participated in ${tournaments} tournaments and secured ${trophies} trophies so far.`;
+  };
 
+  // **⚽ Beraberlik Senaryoları**
+  if (team1Score === team2Score) {
+      if (team1Score === 0) {
+          return `🛑 A goalless draw! Both teams displayed solid defensive performances, making it impossible to break the deadlock. 
+
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+
+Both teams will be looking for a breakthrough in their next game!`;
+      } else {
+          return `🔥 What a thrilling match! The game ended in an exciting ${team1Score}-${team2Score} draw, keeping the fans at the edge of their seats! 
+
+${user1} and ${user2} fought fiercely, trading goals back and forth throughout the game. Both teams had multiple chances to take the lead, but neither could secure a decisive advantage. 
+
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+
+A well-earned point for both sides, but they’ll surely be hungry for victory in their upcoming matches!`;
+      }
+  }
+
+  // **🏆 Galibiyet Senaryoları**
+  if (team1Score > team2Score) {
+      if (goalDifference >= 4) {
+          return `⚡ DOMINANT VICTORY! ${user1} completely outclassed ${user2}, securing a massive ${team1Score}-${team2Score} win! 
+
+${user1} was in total control from the start, showcasing their attacking prowess with relentless pressure. ${user2} tried to respond, but their defense collapsed under the relentless attacks. 
+
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+
+A statement win for ${user1}!`;
+      } else if (goalDifference === 3) {
+          return `🔥 Convincing Win! ${user1} put on a solid performance to claim a ${team1Score}-${team2Score} victory over ${user2}. 
+
+The game was tightly contested in the first half, but ${user1} stepped up their game in the second half, showing why they are a force to be reckoned with. 
+
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+
+${user2} will need to bounce back stronger in the next match!`;
+      } else {
+          return `⚔️ Narrow Victory! ${user1} edged past ${user2} with a hard-fought ${team1Score}-${team2Score} win! 
+
+Both teams gave everything on the pitch, but in the end, ${user1} found the extra edge to secure the three points. 
+
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+
+A fantastic battle, and ${user2} will be looking to get revenge in the next encounter!`;
+      }
+  } else {
+      if (goalDifference >= 4) {
+          return `🚀 CRUSHING VICTORY! ${user2} annihilated ${user1} with a staggering ${team2Score}-${team1Score} scoreline! 
+
+From the opening whistle, ${user2} was on fire, tearing through the defense of ${user1} with precision and power. 
+
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+
+A humiliating defeat for ${user1}, who will need to regroup and recover fast!`;
+      } else if (goalDifference === 3) {
+          return `🔥 Commanding Win! ${user2} delivered a statement victory over ${user1} with a solid ${team2Score}-${team1Score} scoreline. 
+
+Despite a few resistance moments from ${user1}, ${user2} controlled the majority of the match, showcasing great teamwork and finishing ability. 
+
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+
+A performance worthy of champions!`;
+      } else {
+          return `⚖️ Tightly Contested Battle! ${user2} emerged victorious with a close ${team2Score}-${team1Score} win over ${user1}. 
+
+This was a game of fine margins, and ${user2} made the most of their opportunities. ${user1} had their chances but couldn’t capitalize when it mattered most. 
+
+${tournamentInfo(user2, totalTournamentsUser2, totalTrophiesUser2)}
+${tournamentInfo(user1, totalTournamentsUser1, totalTrophiesUser1)}
+
+An intense match that could have gone either way!`;
+      }
+  }
+};
 
 
   const tabs = ['General', 'Lineup', 'Stats', 'Photos'];
@@ -577,103 +808,124 @@ const takePhotoAndUpload = async (folder) => {
       <ScrollView style={styles.content}>
         {selectedTab === 'General' && (
           <View>
-            <Text style={styles.sectionTitle}>Match Summary</Text>
-            <Text style={styles.matchInfo}>{user1} defeated {user2} with a score of {team1Score}-{team2Score}.</Text>
+    <Text style={styles.sectionTitle}>Match Summary</Text>
+    <Text style={styles.matchInfo}>{getMatchSummary()}</Text>
           </View>
         )}
-
 {selectedTab === 'Lineup' && (
+  <View style={styles.container}>
+    <View style={styles.teamSelection}>
+      <TouchableOpacity
+        style={[styles.teamTab, selectedTeam === user1 && { backgroundColor: teamColors[user1] }]}
+        onPress={() => setSelectedTeam(user1)}
+      >
+        <Text style={[styles.teamName, selectedTeam === user1 && styles.selectedTeamText]}>{user1}</Text>
+      </TouchableOpacity>
 
-<View style={styles.container}>
-<View style={styles.teamSelection}>
-        <TouchableOpacity
-          style={[styles.teamTab, selectedTeam === user1 && { backgroundColor: teamColors[user1] }]}
-          onPress={() => setSelectedTeam(user1)}
-        >
-          <Text style={[styles.teamName, selectedTeam === user1 && styles.selectedTeamText]}>{user1}</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.teamTab, selectedTeam === user2 && { backgroundColor: teamColors[user2] }]}
+        onPress={() => setSelectedTeam(user2)}
+      >
+        <Text style={[styles.teamName, selectedTeam === user2 && styles.selectedTeamText]}>{user2}</Text>
+      </TouchableOpacity>
+    </View>
 
-        <TouchableOpacity
-          style={[styles.teamTab, selectedTeam === user2 && { backgroundColor: teamColors[user2] }]}
-          onPress={() => setSelectedTeam(user2)}
-        >
-          <Text style={[styles.teamName, selectedTeam === user2 && styles.selectedTeamText]}>{user2}</Text>
-        </TouchableOpacity>
-      </View>
+    {/* 📌 Saha Görseli ve Oyuncular */}
+    <View style={styles.lineupContainer}>
+      <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
 
-      {/* 📌 Saha Görseli ve Oyuncular */}
-      <View style={styles.lineupContainer}>
-    <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
-
-    {/* 📌 Seçili takımın oyuncularını formasyona göre diziyoruz */}
-    {opponentTeam &&
+      {/* 📌 Eğer takım boşsa uyarı mesajını göster */}
+      {(!opponentTeam || Object.keys(opponentTeam).length === 0) ? (
+        <Text style={styles.noPlayerText}>THERE IS NO PLAYER ON TEAM</Text>
+      ) : (
         formations[opponentFormation]?.map((pos, index) => {
-            // Kullanıcının oyuncularını sırayla pozisyonlara atama
-            const playerKey = `Player${index + 1}`;
-            const playerData = opponentTeam[playerKey];
+          const playerKey = `Player${index + 1}`;
+          const playerData = opponentTeam[playerKey];
 
-            if (!playerData) return null;
+          if (!playerData) return null;
 
-            return (
-                <Animated.View
-                    key={index}
-                    style={[
-                        styles.playerPosition,
-                        {
-                            top: `${pos.top}%`,
-                            left: `${pos.left}%`,
-                            borderColor: teamColors[selectedTeam],
-                            opacity: fadeAnim,
-                            transform: [{ translateY: slideAnim }],
-                        },
-                    ]}
-                >
-                    <Image
-                        source={{ uri: playerData.playerImage }}
-                        style={styles.playerImage}
-                    />
-                    <Text style={styles.playerText}>{playerData.playerName}</Text>
-                </Animated.View>
-            );
-        })}
-</View>
-
-</View>
-
-    )}
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.playerPosition,
+                {
+                  top: `${pos.top}%`,
+                  left: `${pos.left}%`,
+                  borderColor: teamColors[selectedTeam],
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <Image
+                source={{ uri: playerData.playerImage }}
+                style={styles.playerImage}
+              />
+              <Text style={styles.playerText}>{playerData.playerName}</Text>
+            </Animated.View>
+          );
+        })
+      )}
+    </View>
+  </View>
+)}
 
 {selectedTab === 'Stats' && (
   <View style={styles.statsContainer}>
-    <Text style={styles.sectionTitle}>Match Stats</Text>
+    <Text style={styles.sectionTitle}>Player Tournament Stats</Text>
 
-    {[
-      { player1: 66, player2: 34, max: 100, label: "Topla Oynama (%)" },
-      { player1: 14, player2: 7, max: 21, label: "Toplam Şut" },
-      { player1: 3, player2: 3, max: 6, label: "İsabetli Şut" },
-      { player1: 7, player2: 3, max: 10, label: "İsabetsiz Şut" },
-      { player1: 0.80, player2: 1.65, max: 2, label: "Gol Beklentisi (xG)" },
-      { player1: 24, player2: 15, max: 30, label: "Ceza Sahasında Buluşma" },
-    ].map((stat, index) => {
-      // Yüzdelik hesapla (Örn: 7 / 21 * 100)
-      const player1Percentage = (stat.player1 / stat.max) * 100;
-      const player2Percentage = (stat.player2 / stat.max) * 100;
+    {/* Turnuva Katılım Sayısı */}
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>Tournaments Played</Text>
+      <View style={styles.barContainer}>
+        <Animated.View style={[styles.statBar, styles.player1Bar, { width: `${(player1Tournaments / (player1Tournaments + player2Tournaments) * 100) || 0}%` }]} />
+        <Animated.View style={[styles.statBar, styles.player2Bar, { width: `${(player2Tournaments / (player1Tournaments + player2Tournaments) * 100) || 0}%` }]} />
+      </View>
+      <View style={styles.statNumbers}>
+        <Text style={styles.player1Stat}>{player1Tournaments}</Text>
+        <Text style={styles.player2Stat}>{player2Tournaments}</Text>
+      </View>
+    </View>
 
-      return (
-        <View key={index} style={styles.statRow}>
-          <Text style={styles.statLabel}>{stat.label}</Text>
+    {/* Ödül Kazanma Sayısı */}
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>Trophies Won</Text>
+      <View style={styles.barContainer}>
+        <Animated.View style={[styles.statBar, styles.player1Bar, { width: `${(player1Trophies / (player1Trophies + player2Trophies) * 100) || 0}%` }]} />
+        <Animated.View style={[styles.statBar, styles.player2Bar, { width: `${(player2Trophies / (player1Trophies + player2Trophies) * 100) || 0}%` }]} />
+      </View>
+      <View style={styles.statNumbers}>
+        <Text style={styles.player1Stat}>{player1Trophies}</Text>
+        <Text style={styles.player2Stat}>{player2Trophies}</Text>
+      </View>
+    </View>
 
-          <View style={styles.barContainer}>
-            <Animated.View style={[styles.statBar, styles.player1Bar, { width: `${player1Percentage}%` }]} />
-            <Animated.View style={[styles.statBar, styles.player2Bar, { width: `${player2Percentage}%` }]} />
-          </View>
+    {/* Kazanılan Ödüller (Prize) */}
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>Total Earned Prize</Text>
+      <View style={styles.barContainer}>
+        <Animated.View style={[styles.statBar, styles.player1Bar, { width: `${(player1TotalPrize / (player1TotalPrize + player2TotalPrize) * 100) || 0}%` }]} />
+        <Animated.View style={[styles.statBar, styles.player2Bar, { width: `${(player2TotalPrize / (player1TotalPrize + player2TotalPrize) * 100) || 0}%` }]} />
+      </View>
+      <View style={styles.statNumbers}>
+        <Text style={styles.player1Stat}>{player1TotalPrize}TL</Text>
+        <Text style={styles.player2Stat}>{player2TotalPrize}TL</Text>
+      </View>
+    </View>
 
-          <View style={styles.statNumbers}>
-            <Text style={styles.player1Stat}>{stat.player1}</Text>
-            <Text style={styles.player2Stat}>{stat.player2}</Text>
-          </View>
-        </View>
-      );
-    })}
+    {/* Kazanılan XP */}
+    <View style={styles.statRow}>
+      <Text style={styles.statLabel}>Total Earned XP</Text>
+      <View style={styles.barContainer}>
+        <Animated.View style={[styles.statBar, styles.player1Bar, { width: `${(player1TotalXP / (player1TotalXP + player2TotalXP) * 100) || 0}%` }]} />
+        <Animated.View style={[styles.statBar, styles.player2Bar, { width: `${(player2TotalXP / (player1TotalXP + player2TotalXP) * 100) || 0}%` }]} />
+      </View>
+      <View style={styles.statNumbers}>
+        <Text style={styles.player1Stat}>{player1TotalXP}xp</Text>
+        <Text style={styles.player2Stat}>{player2TotalXP}xp</Text>
+      </View>
+    </View>
   </View>
 )}
 
@@ -742,23 +994,57 @@ const takePhotoAndUpload = async (folder) => {
 
 const styles = StyleSheet.create({
 
-
+  noPlayerText: {
+    position: "absolute",
+    top: "40%",
+    left: "38%",
+    transform: [{ translateX: -100 }, { translateY: -20 }],
+    fontSize: 24,
+    color: "white",
+    textAlign: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    elevation: 5,
+  },
+  
   statsContainer: {
     padding: 15,
-    backgroundColor: '#121212',
+    backgroundColor: '#111111',
     borderRadius: 10,
   },
   
   statRow: {
     marginVertical: 10,
   },
-  
+
   statLabel: {
     fontSize: 14,
     color: '#FFF',
     marginBottom: 5,
     textAlign: 'center',
   },
+  statNumbers: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  player1Stat: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  player2Stat: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  loadingText: {
+    textAlign: 'center',
+    color: '#aaa',
+    fontSize: 14,
+  },
+  
   
   barContainer: {
     flexDirection: 'row',
@@ -780,25 +1066,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#8B0000', // Kırmızı
   },
   
-  statNumbers: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 5,
-  },
   
-  player1Stat: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  
-  player2Stat: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  
- 
     usernameText: {
         color: '#FFCC00',
         fontSize: 12,
@@ -939,7 +1207,7 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: '#111111',
-    padding: 20,
+    padding:20,
     borderRadius: 10,
     alignItems: 'center',
   },
@@ -986,7 +1254,7 @@ const styles = StyleSheet.create({
   tabButton: {
     paddingVertical: 10,
     paddingHorizontal: 15,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: '#121212',
   },
   tabButtonSelected: {
