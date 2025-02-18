@@ -19,6 +19,7 @@ export default function TournamentCreator() {
   const [secondPlaceGP, setSecondPlaceGP] = useState(''); // 2. için GP
   const [thirdPlaceGP, setThirdPlaceGP] = useState(''); // 3. için GP
   const [tournamentType, setTournamentType] = useState('ProClubs'); // Turnuva Türü
+  const [tournamentMode, setTournamentMode] = useState('Turnuva'); // 📌 Lig mi Turnuva mı?
 
   const contentOptions = [
     'Min85 Rating','Max85 Rating','End of the Month','Free Rules','Made in Turkey'
@@ -34,15 +35,20 @@ export default function TournamentCreator() {
     'turnuva7.png': require('./assets/turnuva7.png'),
   };
 
+  
   const handleSaveTournament = () => {
     const user = getAuth().currentUser;
-
+  
     if (user) {
       const uid = user.uid;
-      const tournamentRef = ref(getDatabase(), `companies/${uid}/Tournaments`);
+  
+      // 📌 Seçime göre /Tournaments veya /Leagues dizinine kaydet
+      const savePath = tournamentMode === 'Turnuva' ? `companies/${uid}/Tournaments` : `companies/${uid}/Leagues`;
+  
+      const tournamentRef = ref(getDatabase(), savePath);
       const newTournamentRef = push(tournamentRef);
       const tournamentId = newTournamentRef.key;
-
+  
       const newTournament = {
         tournamentId,
         tournamentName,
@@ -57,13 +63,16 @@ export default function TournamentCreator() {
         secondPlaceGP,
         thirdPlaceGP,
         tournamentType,
+        tournamentMode, // 📌 Lig mi Turnuva mı?
         content: selectedContent,
         imageUrl: selectedImage,
       };
-
+  
       update(newTournamentRef, newTournament)
         .then(() => {
-          alert('Turnuva başarıyla oluşturuldu!');
+          alert(`${tournamentMode} başarıyla oluşturuldu!`);
+  
+          // 📌 Tüm state'leri temizle
           setTournamentName('');
           setTournamentDescription('');
           setStartDate('');
@@ -76,17 +85,19 @@ export default function TournamentCreator() {
           setSecondPlaceGP('');
           setThirdPlaceGP('');
           setTournamentType('ProClubs');
+          setTournamentMode('Turnuva');
           setSelectedContent('87 Rating');
           setSelectedImage('');
         })
         .catch((error) => {
-          console.error('Turnuva kaydedilirken hata oluştu:', error);
-          alert('Turnuva kaydedilirken hata oluştu.');
+          console.error(`${tournamentMode} kaydedilirken hata oluştu:`, error);
+          alert(`${tournamentMode} kaydedilirken hata oluştu.`);
         });
     } else {
       alert('Kullanıcı giriş yapmamış.');
     }
   };
+  
 
 
   return (
@@ -241,6 +252,20 @@ export default function TournamentCreator() {
         placeholder="Sponsor İsmi (Varsa)"
         placeholderTextColor="gray"
       />
+            <View style={styles.modeSelector}>
+        <TouchableOpacity
+          style={[styles.modeOption, tournamentMode === 'Turnuva' && styles.selectedMode]}
+          onPress={() => setTournamentMode('Turnuva')}
+        >
+          <Text style={styles.modeText}>Turnuva</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeOption, tournamentMode === 'Lig' && styles.selectedMode]}
+          onPress={() => setTournamentMode('Lig')}
+        >
+          <Text style={styles.modeText}>Lig</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Turnuva Kaydet */}
       <View style={styles.buttonContainer}>
@@ -251,6 +276,29 @@ export default function TournamentCreator() {
 }
 
 const styles = StyleSheet.create({
+  modeSelector: { flexDirection: 'row', justifyContent: 'center', marginBottom: 15 },
+  modeOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 5,
+  },
+  selectedMode: { backgroundColor: 'rgba(1, 39, 85, 0.6)', borderColor: '#fff' },
+  modeText: { color: 'white' },
+  typeSelector: { flexDirection: 'row', marginBottom: 10 },
+  typeOption: { padding: 10, marginHorizontal: 5, borderWidth: 1, borderColor: 'gray', borderRadius: 5 },
+  selectedType: { backgroundColor: 'rgba(1, 39, 85, 0.6)', borderColor: '#fff' },
+  typeText: { color: 'white' },
+  input: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
+    padding: 10,
+    marginBottom: 10,
+    color: 'white',
+    backgroundColor: '#000',
+  },
   container: { flex: 1, backgroundColor: '#000' },
   scrollContainer: { padding: 20 },
   header: { fontSize: 24, color:  'rgb(255, 255, 255)', textAlign: 'center', marginBottom: 20 },
@@ -275,18 +323,8 @@ const styles = StyleSheet.create({
   },
   selectedImage: { borderColor: 'rgba(1, 39, 85, 0.6)' },
   image: { width: 100, height: 100 },
-  input: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
-    padding: 10,
-    marginBottom: 10,
-    color: 'white',
-    backgroundColor: '#000',
-  },
+  
   label: { color: 'white', fontSize: 16, marginBottom: 10 },
   buttonContainer: { marginTop: 20 },
-  typeSelector: { flexDirection: 'row', marginBottom: 10 },
-  typeOption: { padding: 10, marginHorizontal: 5, borderWidth: 1, borderColor: 'gray', borderRadius: 5 },
-  selectedType: { backgroundColor: 'rgba(1, 39, 85, 0.6)', borderColor: '#fff' },
-  typeText: { color: 'white' },
+   
 });

@@ -13,6 +13,7 @@ import ProfileScreen from './ProfileScreen';
 import GraphScreen from './GraphScreen';
 import CartPage from './CartPage';
 import TournamentDetails from './TournamentDetails';
+import LeagueDetails from './LeagueDetails';
 import MatchDetails from './MatchDetails';
 import CompanyProfileScreen from './CompanyProfileScreen';
 import CompanyAddItem from './CompanyAddItem';
@@ -59,6 +60,7 @@ function MyTournamentsStack() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="MatchDetails" component={MatchDetails} options={{ headerShown: false }} />
+      <Stack.Screen name="LeagueDetails" component={LeagueDetails} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

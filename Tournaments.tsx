@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { ref, onValue, push,update, set } from 'firebase/database';
@@ -9,6 +9,9 @@ const Tournaments = () => {
   const [tournament, setTournament] = useState(null);
   const [error, setError] = useState('');
   const [joined, setJoined] = useState(false);
+  const [approveUser, setApproveUser] = useState(''); // Onaylanacak kullanıcı
+  const [isAdmin, setIsAdmin] = useState(false); // Admin kontrolü
+  const [eventType, setEventType] = useState(null); // 📌 Turnuva mı Lig mi?
 
   const imageMap = {
     'turnuva1.png': require('./assets/titleturnuva1.png'),
@@ -20,33 +23,91 @@ const Tournaments = () => {
     'turnuva7.png': require('./assets/titleturnuva7.png'),
   };
 
-  const fetchTournament = () => {
+
+
+  // 🟢 Kullanıcının admin olup olmadığını kontrol et
+  useEffect(() => {
     const auth = getAuth();
     const user = auth.currentUser;
 
-    if (!user) {
-      setError('Kullanıcı oturumu açık değil.');
+    if (user?.email === 'admin@gmail.com') {
+      setIsAdmin(true); // Eğer kullanıcı admin ise, isAdmin'i true yap
+    } else {
+      setIsAdmin(false);
+    }
+  }, []); // 🔥 Sadece başlangıçta bir kez çalışsın
+
+  
+  const fetchTournament = () => {
+    if (!inputId.trim()) {
+      setError('Lütfen bir ID girin.');
       return;
     }
 
     const tournamentsRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments`);
-    onValue(tournamentsRef, (snapshot) => {
-      const data = snapshot.val();
-      const foundTournament = Object.values(data || {}).find(
+    const leaguesRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues`);
+
+    let foundEvent = null;
+    let foundType = null;
+
+    // Turnuvaları kontrol et
+    onValue(tournamentsRef, (tournamentSnapshot) => {
+      const tournamentData = tournamentSnapshot.val();
+      const foundTournament = Object.values(tournamentData || {}).find(
         (item) => item.tournamentId === inputId
       );
 
       if (foundTournament) {
-        setTournament(foundTournament);
-        setError('');
-        checkIfAlreadyJoined(foundTournament.tournamentId);
-      } else {
-        setTournament(null);
-        setError('Bu ID ile eşleşen bir turnuva bulunamadı.');
+        foundEvent = foundTournament;
+        foundType = 'Tournament';
       }
-    });
+
+      // Ligleri kontrol et
+      onValue(leaguesRef, (leagueSnapshot) => {
+        const leagueData = leagueSnapshot.val();
+        const foundLeague = Object.values(leagueData || {}).find(
+          (item) => item.tournamentId === inputId
+        );
+
+        if (foundLeague) {
+          foundEvent = foundLeague;
+          foundType = 'League';
+        }
+
+        if (foundEvent) {
+          setTournament(foundEvent);
+          setEventType(foundType);
+          setError('');
+        } else {
+          setTournament(null);
+          setError('Bu ID ile eşleşen bir etkinlik bulunamadı.');
+        }
+      }, { onlyOnce: true });
+    }, { onlyOnce: true });
   };
 
+
+  const handleApproveUser = () => {
+    if (!approveUser.trim()) {
+      alert('Lütfen bir kullanıcı adı girin.');
+      return;
+    }
+
+    const approvedRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/${eventType}s/${tournament.tournamentId}/approved/${approveUser}`
+    );
+
+    set(approvedRef, { username: approveUser })
+      .then(() => {
+        alert(`${approveUser} başarıyla onaylandı!`);
+        setApproveUser('');
+      })
+      .catch((error) => console.error('Hata:', error.message));
+  };
+
+
+  
   const checkUserType = (callback: (isCompany: boolean) => void) => {
     const auth = getAuth();
     const user = auth.currentUser;
@@ -61,19 +122,6 @@ const Tournaments = () => {
       callback(false);
     }
   };
-
-  const checkIfAlreadyJoined = (tournamentId) => {
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    const myTournamentsRef = ref(database, `users/${user.uid}/MyTournaments`);
-    onValue(myTournamentsRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      const alreadyJoined = Object.values(data).includes(tournamentId);
-
-      setJoined(alreadyJoined);
-    });
-  };
   
   const handleJoinTournament = () => {
     const auth = getAuth();
@@ -84,82 +132,100 @@ const Tournaments = () => {
       return;
     }
   
-    // Eğer kullanıcı adminse sadece kendi hesabına eklesin
-    if (user.email === 'admin@gmail.com') {
-      const myTournamentsRef = ref(database, `companies/${user.uid}/MyTournaments`);
-      update(myTournamentsRef, {
-        [tournament.tournamentId]: tournament.tournamentId
-      })
-        .then(() => {
-          alert('Turnuva başarıyla hesabınıza eklendi!');
-          setJoined(true);
-        })
-        .catch((error) => console.error('Hata:', error.message));
+    if (!tournament || !eventType) {
+      alert('Lütfen önce bir turnuva veya lig bulun.');
       return;
     }
   
-    // Kullanıcının userType'ını kontrol et
-    checkUserType((isCompany) => {
-      const myTournamentsRef = ref(database, `users/${user.uid}/MyTournaments`);
+    const userCompanyRef = ref(database, `users/${user.uid}/zzzCardInformation`);
   
-      if (isCompany) {
-        update(myTournamentsRef, {
-          [tournament.tournamentId]: tournament.tournamentId
-        })
+    onValue(userCompanyRef, (snapshot) => {
+      const companyData = snapshot.val();
+  
+      if (!companyData) {
+        alert("You don't have permission");
+        return;
+      }
+  
+      let companyName = 'Unknown';
+      const firstKey = Object.keys(companyData)[0];
+      companyName = companyData[firstKey]?.companyName || 'Unknown';
+  
+      // 🟢 Kullanıcının `approved` listesinde olup olmadığını kontrol et
+      const approvedRef = ref(
+        database, 
+        `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/${eventType}s/${tournament.tournamentId}/approved`
+      );
+  
+      onValue(approvedRef, (approvedSnapshot) => {
+        const approvedList = approvedSnapshot.val() || {};
+  
+        // 🛠 Kullanıcının `approved` listesinde olup olmadığını kontrol et
+        const isApproved = Object.keys(approvedList).includes(companyName);
+  
+        if (!isApproved) {
+          alert("You don't have permission to join this event.");
+          return;
+        }
+  
+        // 🔥 Lig ise MyLeagues, Turnuva ise MyTournaments klasörüne ekle
+        const userRefPath = eventType === 'Tournament'
+          ? `users/${user.uid}/MyTournaments/${tournament.tournamentId}`
+          : `users/${user.uid}/MyLeagues/${tournament.tournamentId}`;
+  
+        // 🔥 Katılımcıyı turnuvanın `participants` kısmına da ekle
+        const participantsRef = ref(
+          database, 
+          `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/${eventType}s/${tournament.tournamentId}/participants/${user.uid}`
+        );
+  
+        const participantData = {
+          id: user.uid,
+          email: user.email,
+          companyName: companyName,
+          eventName: tournament.tournamentName,
+          joinedAt: new Date().toISOString()
+        };
+  
+        // 🔥 Sadece `tournamentId: tournamentId` veya `leagueId: leagueId` şeklinde kaydet
+        const leagueOrTournamentId = tournament.tournamentId;
+  
+        Promise.all([
+          set(ref(database, userRefPath), leagueOrTournamentId),
+          set(participantsRef, participantData)
+        ])
           .then(() => {
-            alert('Turnuva başarıyla hesabınıza eklendi!');
+            alert(`${eventType} başarıyla kaydedildi!`);
             setJoined(true);
           })
-          .catch((error) => console.error('Hata:', error.message));
-      } else {
-        const userCompanyRef = ref(database, `users/${user.uid}/zzzCardInformation`);
+          .catch((error) => {
+            console.error('Hata:', error.message);
+          });
   
-        onValue(
-          userCompanyRef,
-          (snapshot) => {
-            const companyData = snapshot.val();
+      }, { onlyOnce: true });
   
-            let companyName = 'Bilinmiyor';
-            if (companyData) {
-              const firstKey = Object.keys(companyData)[0];
-              companyName = companyData[firstKey]?.companyName || 'Bilinmiyor';
-            }
-  
-            const participantData = {
-              id: user.uid, // 🔥 Kullanıcı kendi UID’si ile kaydolacak
-              email: user.email,
-              companyName: companyName,
-            };
-  
-            // 🔥 `push` yerine `set` kullanarak UID ile ekleme yapıyoruz
-            const participantRef = ref(
-              database,
-              `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/participants/${user.uid}`
-            );
-  
-            set(participantRef, participantData) // 🔥 Kullanıcının UID'sini key olarak kullanarak ekleme
-              .then(() => {
-                update(myTournamentsRef, {
-                  [tournament.tournamentId]: tournament.tournamentId
-                })
-                  .then(() => {
-                    alert('Turnuvaya başarıyla katıldınız!');
-                    setJoined(true);
-                  })
-                  .catch((error) => console.error('Hata:', error.message));
-              })
-              .catch((error) => console.error('Hata:', error.message));
-          },
-          { onlyOnce: true }
-        );
-      }
-    });
+    }, { onlyOnce: true });
   };
-  
   
 
   return (
     <View style={styles.container}>
+      {isAdmin && (
+        <View style={styles.adminPanel}>
+          <Text style={styles.adminTitle}>Approve a User</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="User ID to Approve"
+            value={approveUser}
+            onChangeText={setApproveUser}
+            placeholderTextColor="#fff"
+          />
+          <TouchableOpacity style={styles.approveButton} onPress={handleApproveUser}>
+            <Text style={styles.approveButtonText}>Approve</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <Text style={styles.title}>Search Tournament</Text>
       <TextInput
         style={styles.input}
@@ -214,7 +280,29 @@ const Tournaments = () => {
 };
 
 const styles = StyleSheet.create({
-
+  adminPanel: {
+    marginTop: 10,
+    backgroundColor: '#1c1c1c',
+    padding: 10,
+    borderRadius: 5,
+  },
+  adminTitle: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  approveButton: {
+    backgroundColor: '#e67e22',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  approveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  
     container: {
         flex: 1,
         padding: 20,
@@ -282,7 +370,7 @@ const styles = StyleSheet.create({
       joinButton: {
         backgroundColor: '#3498db',
         paddingVertical: 8,
-        left:13,
+        left:8,
         paddingHorizontal: 20,
         borderRadius: 5,
         marginBottom: 15,

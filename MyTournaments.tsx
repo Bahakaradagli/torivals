@@ -16,6 +16,7 @@ import { Video } from 'expo-av';
 
 const MyTournaments = () => {
   const [myTournaments, setMyTournaments] = useState([]);
+  const [myLeagues, setMyLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOption, setSelectedOption] = useState('My Tournaments');
   const [myEarnings, setMyEarnings] = useState([]);
@@ -23,6 +24,36 @@ const MyTournaments = () => {
   const [totalGP, setTotalGP] = useState(0);
   const navigation = useNavigation();
 
+  const fetchMyLeagues2 = () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      alert('Kullanıcı oturumu açık değil.');
+      return;
+    }
+  
+    const leaguesRef = ref(database, `users/${user.uid}/MyLeagues`);
+    const allLeaguesRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues`);
+  
+    onValue(leaguesRef, (snapshot) => {
+      const leagueIds = snapshot.val() || {};
+      const leagueIdList = Object.values(leagueIds);
+  
+      onValue(allLeaguesRef, (allSnapshot) => {
+        const allLeagues = allSnapshot.val() || {};
+        const filteredLeagues = Object.values(allLeagues).filter(
+          (league) => leagueIdList.includes(league.tournamentId)
+        );
+        setMyLeagues(filteredLeagues);
+      });
+    });
+  };
+  
+  // -- C: My Leagues için her bir kartı render edecek fonksiyon
+
+
+  
   const imageMap = {
     'turnuva1.png': require('./assets/titleturnuva1.png'),
     'turnuva2.png': require('./assets/titleturnuva2.png'),
@@ -36,6 +67,7 @@ const MyTournaments = () => {
   useEffect(() => {
     fetchMyTournaments();
     fetchMyEarnings();
+    fetchMyLeagues(); 
   }, []);
 
   const fetchMyEarnings = () => {
@@ -112,6 +144,52 @@ const MyTournaments = () => {
     }
   };
 
+  const fetchMyLeagues = () => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+  
+    if (!user) {
+      alert('Kullanıcı oturumu açık değil.');
+      return;
+    }
+  
+    const allLeaguesRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues`);
+  
+    if (user.email === 'admin@gmail.com') {
+      // 🔥 Admin ise tüm ligleri çek
+      onValue(allLeaguesRef, (allSnapshot) => {
+        const allLeagues = allSnapshot.val() || {};
+        setMyLeagues(Object.values(allLeagues));
+        setLoading(false);
+      });
+    } else {
+      // 🟢 Kullanıcının kayıtlı olduğu ligleri al
+      const myLeaguesRef = ref(database, `users/${user.uid}/MyLeagues`);
+  
+      onValue(myLeaguesRef, (snapshot) => {
+        const leagueIds = snapshot.val() || {};
+        const leagueIdList = Object.keys(leagueIds); // 🛠 `Object.keys()` ile ID'leri al
+  
+        console.log("📌 Kullanıcının Lig ID'leri:", leagueIdList); // 🔍 Debugging
+  
+        onValue(allLeaguesRef, (allSnapshot) => {
+          const allLeagues = allSnapshot.val() || {};
+          console.log("📌 Tüm Ligler:", allLeagues); // 🔍 Debugging
+  
+          const filteredLeagues = Object.values(allLeagues).filter(
+            (league) => leagueIdList.includes(league.tournamentId) // 🔥 Doğru ID ile filtreleme
+          );
+  
+          console.log("✅ Kullanıcının Katıldığı Ligler:", filteredLeagues); // 🔍 Debugging
+  
+          setMyLeagues(filteredLeagues);
+          setLoading(false);
+        });
+      });
+    }
+  };
+  
+
   // -- A: My Tournaments için her bir kartı render edecek fonksiyon
   const renderTournamentItem = ({ item }) => (
     <TouchableOpacity
@@ -159,10 +237,45 @@ const MyTournaments = () => {
     </View>
   );
 
+
+  const renderLeagueItem = ({ item }) => (
+<TouchableOpacity
+  style={styles.card}
+  onPress={() => {
+    if (!item || !item.tournamentId) {
+      console.error("❌ Hata: Lig verisi eksik", item);
+      return;
+    }
+    console.log("📌 Lig Detaylarına Gidiliyor:", item);
+    navigation.navigate('LeagueDetails', { tournament: item });
+  }}
+>
+
+      <Video
+        source={require('./assets/PuanDurumuBG1.mp4')}
+        style={styles.backgroundVideo3}
+        resizeMode="cover"
+        shouldPlay
+        isLooping
+        isMuted
+      />
+      <Image
+        source={imageMap[item.imageUrl] || require('./assets/deniz.jpg')}
+        style={styles.image}
+      />
+      <View style={styles.info}>
+        <Text style={styles.title}>{item.tournamentName}</Text>
+        <Text style={styles.date}>Start Date: {item.startDate}</Text>
+        <Text style={styles.content}>Rule: {item.content}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+  
+
   // Sekmelerin üst kısımda gösterilmesi
   const renderOptions = () => (
     <View style={styles.horizontalOptionsContainer}>
-      {['My Tournaments', 'My Earnings', 'My Cups'].map((item) => (
+      {['My Tournaments', 'My Earnings', 'My Leagues'].map((item) => (
         <TouchableOpacity
           key={item}
           style={[
@@ -199,16 +312,15 @@ const MyTournaments = () => {
             renderItem={renderEarningItem}
           />
         );
-      case 'My Cups':
+        case 'My Leagues': 
         return (
- <View style={styles.container2}>
- 
-      <Text style={styles.title2}>Coming Soon!</Text>
-      <Text style={styles.description}>
-        We're working hard to bring you something amazing. Stay tuned for updates!
-      </Text> 
-    </View>
+          <FlatList
+            data={myLeagues}
+            keyExtractor={(item) => item.tournamentId} // 🔥 tournamentId kullan!
+            renderItem={renderLeagueItem}
+          />
         );
+      
       default:
         return (
           <FlatList
