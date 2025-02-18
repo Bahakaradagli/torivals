@@ -49,21 +49,69 @@ const LeagueDetails = ({ route }) => {
   const [photoUrls, setPhotoUrls] = useState([]);
   const [participantsData, setParticipantsData] = useState({});
 
-  useEffect(() => {
-    const participantsRef = ref(
-      database,
-      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/participants`
-    );
+  const [selectedWeek, setSelectedWeek] = useState(null);
+
+  // Mevcut tüm haftaları listeleyelim (Eğer Firebase'den gelen veri varsa)
+  const availableWeeks = fixturesData ? Object.keys(fixturesData).map((week) => parseInt(week, 10)).sort((a, b) => a - b) : [];
   
-    onValue(participantsRef, (snapshot) => {
+  useEffect(() => {
+    // Eğer seçili hafta yoksa en küçük haftayı seç
+    if (availableWeeks.length > 0 && selectedWeek === null) {
+      setSelectedWeek(availableWeeks[0]);
+    }
+  }, [fixturesData]);
+  
+  
+
+
+  useEffect(() => {
+    console.log("🔄 useEffect tetiklendi: participants verisi çekiliyor...");
+  
+    const participantsRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/participants`);
+  
+    get(participantsRef).then((snapshot) => {
       if (snapshot.exists()) {
-        setParticipantsCount(Object.keys(snapshot.val()).length);
-        console.log('✅ Katılımcı Sayısı:', Object.keys(snapshot.val()).length);
+        const participantsData = snapshot.val();
+        const teamsArray = Object.keys(participantsData).map((key) => ({
+          id: key,
+          ...participantsData[key],
+        }));
+  
+        // Eğer veri değişmemişse state güncellenmesin (sonsuz döngü engellenir!)
+        if (JSON.stringify(teamsData) !== JSON.stringify(teamsArray)) {
+          console.log("✅ Katılımcılar Alındı:", teamsArray);
+          setTeamsData(teamsArray);
+        } else {
+          console.log("⚠️ Katılımcılar değişmedi, setTeamsData çağrılmadı.");
+        }
       } else {
-        setParticipantsCount(0);
+        console.log("⛔ Katılımcılar Bulunamadı!");
       }
     });
-  }, [tournament.tournamentId]);
+  }, [tournament.tournamentId]);  // 🔥 Sadece `tournamentId` değiştiğinde çalışır
+  useEffect(() => {
+    console.log("🔄 useEffect tetiklendi: Otomatik Fikstür Kontrolü");
+  
+    if (teamsData.length < 2) {
+      console.log("❌ Yeterli takım yok, fikstür oluşturulmadı.");
+      return;
+    }
+  
+    const fixturesRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`
+    );
+  
+    get(fixturesRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        console.log("⚠️ Fikstür zaten var, tekrar oluşturulmayacak.");
+        return;
+      }
+  
+      console.log("🚀 Yeni Fikstür Otomatik Oluşturuluyor...");
+      createCompleteLeagueFixtures();
+    });
+  }, [teamsData]);
   
   
   const updateLeagueTable = async () => {
@@ -253,8 +301,6 @@ const LeagueDetails = ({ route }) => {
       startDate: tournament.startDate,
     });
   };
-  
-  
   
   
   
@@ -486,7 +532,88 @@ const LeagueDetails = ({ route }) => {
     }
   };
   
+  
+  const createCompleteLeagueFixtures = () => {
+    console.log("🏆 Lig Fikstürü Oluşturuluyor...");
+  
+    if (teamsData.length < 2) {
+      console.log("❌ Yeterli takım yok, fikstür oluşturulamadı.");
+      return;
+    }
+  
+    const fixturesRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`);
+  
+    console.log("📡 Firebase’den mevcut fikstürler çekiliyor...");
+  
+    get(fixturesRef).then((snapshot) => {
+      if (snapshot.exists()) {
+        console.log("⚠️ Fikstür zaten var, tekrar oluşturulmayacak.");
+        return;
+      }
+  
+      console.log("🚀 Yeni Lig Fikstürü Oluşturuluyor...");
+  
+      const teams = teamsData.map(team => team.companyName); // 🔥 Takım isimlerini çekiyoruz!
+      const totalRounds = teams.length - 1;
+      const matchesPerRound = Math.floor(teams.length / 2);
+      let fixtures = {};
+  
+      if (teams.length % 2 !== 0) {
+        teams.push("BAY");
+      }
+  
+      for (let round = 1; round <= totalRounds; round++) {
+        fixtures[round] = [];
+  
+        for (let match = 0; match < matchesPerRound; match++) {
+          let team1 = teams[match];
+          let team2 = teams[teams.length - 1 - match];
+  
+          if (team1 !== "BAY" && team2 !== "BAY") {
+            fixtures[round].push({
+              team1,
+              team2,
+              team1Score: null,
+              team2Score: null,
+              winner: null,
+            });
+          }
+        }
+  
+        teams.splice(1, 0, teams.pop());
+      }
+  
+      console.log("📊 Oluşturulan Fikstür:", fixtures);
+  
+      update(fixturesRef, fixtures)
+        .then(() => console.log("✅ Fikstür başarıyla Firebase'e kaydedildi!"))
+        .catch((err) => console.error("❌ Firebase Güncelleme Hatası:", err.message));
+    });
+  };
+  
 
+
+  const checkLeagueFixtures = () => {
+    const fixturesRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`
+    );
+  
+    console.log("📡 Firebase’den fikstürler çekiliyor...");
+  
+    onValue(fixturesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        console.log("✅ Firebase'den gelen fikstür verisi:", snapshot.val());
+      } else {
+        console.log("⛔ Firebase'de fikstür verisi yok!");
+      }
+    });
+  };
+  
+  useEffect(() => {
+    checkLeagueFixtures();
+  }, []);
+  
 
   const fetchPhotosForMatch = async (match) => {
     try {
@@ -565,7 +692,6 @@ const LeagueDetails = ({ route }) => {
       return null;
     }
   };
-  
   
 
   const addWinnerEarningsToUsers = async (participantId, tournamentId, prizeAmount, xp) => {
@@ -808,53 +934,91 @@ const LeagueDetails = ({ route }) => {
     });
   }, []);
 
-
-  const createLeagueFixtures = () => {
+  
+  const createFullLeagueFixtures = () => {
+    console.log("🏆 Fikstür oluşturma fonksiyonu çalıştı!");
+  
+    if (participantsCount < 2 || teamsData.length < 2) {
+      console.log("❌ Yeterli takım yok, fikstür oluşturulamadı.");
+      return;
+    }
+  
     const fixturesRef = ref(
       database,
       `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`
     );
   
+    console.log("📡 Firebase’den mevcut fikstürler çekiliyor...");
+  
     get(fixturesRef).then((snapshot) => {
       if (snapshot.exists()) {
-        console.log("⚠️ Fikstür zaten oluşturulmuş.");
+        console.log("⚠️ Fikstür zaten var, tekrar oluşturulmayacak.");
         return;
       }
   
-      const teams = Object.values(participantsData);
-      if (teams.length < 2) {
-        console.log("❌ Yeterli takım yok, fikstür oluşturulamadı.");
-        return;
+      console.log("🚀 Fikstür oluşturuluyor...");
+  
+      const teams = [...teamsData.map(team => team.companyName)];
+      const totalRounds = teams.length - 1;
+      const matchesPerRound = Math.floor(teams.length / 2);
+      let fixtures = {};
+  
+      if (teams.length % 2 !== 0) {
+        teams.push("BAY");
       }
   
-      let matchWeek = 1;
-      const fixtures = {};
+      for (let round = 1; round <= totalRounds; round++) {
+        fixtures[round] = [];
   
-      for (let i = 0; i < teams.length; i++) {
-        for (let j = i + 1; j < teams.length; j++) {
-          if (!fixtures[matchWeek]) {
-            fixtures[matchWeek] = [];
-          }
-          fixtures[matchWeek].push({
-            team1: teams[i].companyName,
-            team2: teams[j].companyName,
-            team1Score: null,
-            team2Score: null,
-            winner: null,
-          });
+        for (let match = 0; match < matchesPerRound; match++) {
+          let team1 = teams[match];
+          let team2 = teams[teams.length - 1 - match];
   
-          // Her maç haftasında eşleşmeler sırayla olacak
-          if (fixtures[matchWeek].length >= teams.length / 2) {
-            matchWeek++;
+          if (team1 !== "BAY" && team2 !== "BAY") {
+            fixtures[round].push({
+              team1,
+              team2,
+              team1Score: null,
+              team2Score: null,
+              winner: null,
+            });
           }
         }
+  
+        teams.splice(1, 0, teams.pop());
       }
   
+      console.log("🔄 Firebase’e güncellenen fikstür verisi gönderiliyor...");
+      console.log("📊 Fikstür Verisi:", fixtures);
+  
       update(fixturesRef, fixtures)
-        .then(() => console.log("✅ Lig fikstürü başarıyla oluşturuldu."))
+        .then(() => console.log("✅ Fikstür başarıyla Firebase'e kaydedildi!"))
         .catch((err) => console.error("❌ Firebase Güncelleme Hatası:", err.message));
     });
   };
+  
+
+  const testLeagueFixturesFetch = () => {
+    const fixturesRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`
+    );
+  
+    console.log("📡 Firebase’den fikstürler çekiliyor...");
+  
+    onValue(fixturesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        console.log("✅ Firebase'den gelen fikstür verisi:", snapshot.val());
+      } else {
+        console.log("⛔ Firebase'de fikstür verisi yok!");
+      }
+    });
+  };
+  
+  useEffect(() => {
+    testLeagueFixturesFetch();
+  }, []);
+  
   
   useEffect(() => {
     const fixturesRef = ref(
@@ -1322,40 +1486,64 @@ tournament.prizePercentage
   </ScrollView>
 )}
 
-
 {selectedTab === 'Fixtures' && (
   <ScrollView style={styles.bracketContainer}>
-    {Object.keys(fixturesData || {}).length === 0 ? (
-      <View style={styles.waitingContainer}>
-        <Text style={styles.waitingText}>
-          League has not started yet.
-        </Text>
+    
+    {/* 🔹 Hafta Seçici Dropdown */}
+    <View style={styles.weekSelectorContainer}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {availableWeeks.map((week) => (
+          <TouchableOpacity
+            key={week}
+            style={[
+              styles.weekButton,
+              selectedWeek === week && styles.weekButtonSelected
+            ]}
+            onPress={() => setSelectedWeek(week)}
+          >
+            <Text style={[
+              styles.weekButtonText,
+              selectedWeek === week && styles.weekButtonTextSelected
+            ]}>
+              {week}. Hafta
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+
+    {/* 🔥 Seçilen Haftanın Maçlarını Göster */}
+    {selectedWeek && fixturesData[selectedWeek] ? (
+      <View key={selectedWeek} style={styles.roundContainer}>
+        <Text style={styles.roundTitle}>{selectedWeek}. Hafta</Text>
+        {fixturesData[selectedWeek]?.map((match, matchIndex) => (
+          <TouchableOpacity
+            key={matchIndex}
+            style={styles.matchContainer}
+            onPress={() => showMatchDetails(match, selectedWeek)}
+          >
+               <Image
+                              source={require('./assets/fixture_background2.png')}
+                              style={styles.backgroundVideo}
+                              resizeMode="cover"
+                              shouldPlay
+                              isLooping
+                              isMuted
+                            />
+            <Text style={styles.teamText}>{match.team1 || 'Bekleniyor'}</Text>
+            <Text style={styles.scoreText}>
+              {match.team1Score != null && match.team2Score != null
+                ? `${match.team1Score} - ${match.team2Score}`
+                : 'VS'}
+            </Text>
+            <Text style={styles.teamText}>{match.team2 || 'Bekleniyor'}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     ) : (
-      Object.keys(fixturesData)
-        .map((week) => parseInt(week, 10))
-        .sort((a, b) => a - b)
-        .map((week, index) => (
-          <View key={index} style={styles.roundContainer}>
-            <Text style={styles.roundTitle}>{week}. Hafta</Text>
-            {fixturesData[week]?.map((match, matchIndex) => (
-              <TouchableOpacity
-                key={matchIndex}
-                style={styles.matchContainer}
-                onPress={() => showMatchDetails(match, week)}
-              >
-                <Text style={styles.teamText}>{match.team1 || 'Bekleniyor'}</Text>
-                <Text style={styles.scoreText}>
-                  {match.team1Score != null && match.team2Score != null
-                    ? `${match.team1Score} - ${match.team2Score}`
-                    : 'VS'}
-                </Text>
-                <Text style={styles.teamText}>{match.team2 || 'Bekleniyor'}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))
+      <Text style={styles.noMatchesText}>Bu hafta için maç bulunamadı.</Text>
     )}
+
   </ScrollView>
 )}
 
@@ -1538,6 +1726,53 @@ tournament.prizePercentage
 };
 
 const styles = StyleSheet.create({
+
+    weekSelectorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 10,
+        paddingVertical: 10,
+        backgroundColor: '#000',
+        borderRadius: 10,
+      },
+      
+      weekSelectorText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginRight: 10,
+      },
+      
+      weekButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        marginHorizontal: 5,
+        borderRadius: 20,
+        backgroundColor: '#121212',
+      },
+      
+      weekButtonSelected: {
+        backgroundColor: '#FFF',
+      },
+      
+      weekButtonText: {
+        color: '#fff',
+        fontSize: 14,
+      },
+      
+      weekButtonTextSelected: {
+        color: '#121212',
+        fontWeight: 'bold',
+      },
+      
+      noMatchesText: {
+        color: '#fff',
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+      },
+      
     table: {
         backgroundColor: '#000',
         borderRadius: 10,
