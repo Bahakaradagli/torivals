@@ -4,10 +4,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  ScrollView,
-  Dimensions,
   Modal,
-  TextInput
+  TextInput,
+  Dimensions,
+  ScrollView
 } from "react-native";
 import PlayerRequest from "./API/footbalPlayerRequest";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -16,6 +16,116 @@ import { getDatabase, ref, set, get } from "firebase/database";
 
 const { width, height } = Dimensions.get("window");
 
+// Formation definitions with positions
+const formations = {
+  "4-4-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.1, y: 0.55 },
+        { x: 0.3, y: 0.55 },
+        { x: 0.7, y: 0.55 },
+        { x: 0.9, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "3-5-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.3, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.7, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.1, y: 0.55 },
+        { x: 0.3, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.7, y: 0.55 },
+        { x: 0.9, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-3-3": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.2, y: 0.75 },
+        { x: 0.4, y: 0.75 },
+        { x: 0.6, y: 0.75 },
+        { x: 0.8, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.7, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.15, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.85, y: 0.3 }
+      ]
+    }
+  },
+  "5-3-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.1, y: 0.65 },
+        { x: 0.25, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.75, y: 0.75 },
+        { x: 0.9, y: 0.65 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.7, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-2-4": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.2, y: 0.75 },
+        { x: 0.4, y: 0.75 },
+        { x: 0.6, y: 0.75 },
+        { x: 0.8, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.55 },
+        { x: 0.7, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.1, y: 0.3 },
+        { x: 0.3, y: 0.3 },
+        { x: 0.7, y: 0.3 },
+        { x: 0.9, y: 0.3 }
+      ]
+    }
+  }
+};
+
+// Category mapping for player positions
 const categoryMap = {
   goalkeeper: "Goalkeeper",
   defense: "Defender",
@@ -23,115 +133,7 @@ const categoryMap = {
   forwards: "Striker"
 };
 
-const formations = {
-  "4-4-2": {
-    positions: {
-      goalkeeper: [{ x: 0.5, y: 0.87 }],
-      defense: [
-        { x: 0.2, y: 0.70 },
-        { x: 0.4, y: 0.70 },
-        { x: 0.6, y: 0.70 },
-        { x: 0.8, y: 0.70 }
-      ],
-      midfield: [
-        { x: 0.1, y: 0.50 },
-        { x: 0.3, y: 0.50 },
-        { x: 0.7, y: 0.50 },
-        { x: 0.9, y: 0.50 }
-      ],
-      forwards: [
-        { x: 0.3, y: 0.25 },
-        { x: 0.7, y: 0.25 }
-      ]
-    }
-  },
-  "3-5-2": {
-    positions: {
-      goalkeeper: [{ x: 0.5, y: 0.87 }],
-      defense: [
-        { x: 0.3, y: 0.70 },
-        { x: 0.5, y: 0.70 },
-        { x: 0.7, y: 0.70 }
-      ],
-      midfield: [
-        { x: 0.1, y: 0.50 },
-        { x: 0.3, y: 0.50 },
-        { x: 0.5, y: 0.50 },
-        { x: 0.7, y: 0.50 },
-        { x: 0.9, y: 0.50 }
-      ],
-      forwards: [
-        { x: 0.3, y: 0.25 },
-        { x: 0.7, y: 0.25 }
-      ]
-    }
-  },
-  "4-3-3": {
-    positions: {
-      goalkeeper: [{ x: 0.5, y: 0.87 }],
-      defense: [
-        { x: 0.2, y: 0.70 },
-        { x: 0.4, y: 0.70 },
-        { x: 0.6, y: 0.70 },
-        { x: 0.8, y: 0.70 }
-      ],
-      midfield: [
-        { x: 0.3, y: 0.50 },
-        { x: 0.5, y: 0.50 },
-        { x: 0.7, y: 0.50 }
-      ],
-      forwards: [
-        { x: 0.2, y: 0.25 },
-        { x: 0.5, y: 0.25 },
-        { x: 0.8, y: 0.25 }
-      ]
-    }
-  },
-  "5-3-2": {
-    positions: {
-      goalkeeper: [{ x: 0.5, y: 0.80 }],
-      defense: [
-        { x: 0.15, y: 0.55 },
-        { x: 0.3, y: 0.65 },
-        { x: 0.5, y: 0.675 },
-        { x: 0.7, y: 0.65 },
-        { x: 0.85, y: 0.55 }
-      ],
-      midfield: [
-        { x: 0.3, y: 0.45 },
-        { x: 0.5, y: 0.50 },
-        { x: 0.7, y: 0.45 }
-      ],
-      forwards: [
-        { x: 0.3, y: 0.25 },
-        { x: 0.7, y: 0.25 }
-      ]
-    }
-  },
-  "4-2-4": {
-    positions: {
-      goalkeeper: [{ x: 0.5, y: 0.87 }],
-      defense: [
-        { x: 0.2, y: 0.70 },
-        { x: 0.4, y: 0.70 },
-        { x: 0.6, y: 0.70 },
-        { x: 0.8, y: 0.70 }
-      ],
-      midfield: [
-        { x: 0.3, y: 0.50 },
-        { x: 0.7, y: 0.50 }
-      ],
-      forwards: [
-        { x: 0.1, y: 0.25 },
-        { x: 0.3, y: 0.25 },
-        { x: 0.7, y: 0.25 },
-        { x: 0.9, y: 0.25 }
-      ]
-    }
-  }
-};
-
-// Yardımcı: Kaydedilen pozisyon string'ine göre kategori belirleme
+// Helper function to determine category from position string
 const getCategoryFromPosition = (pos: string | undefined) => {
   if (!pos) return null;
   const lower = pos.toLowerCase();
@@ -145,6 +147,7 @@ const getCategoryFromPosition = (pos: string | undefined) => {
 const FootballField = () => {
   const [fieldDimensions, setFieldDimensions] = useState({ width: 0, height: 0 });
   const [selectedFormation, setSelectedFormation] = useState("4-4-2");
+  const [showFormationDropdown, setShowFormationDropdown] = useState(false);
   const [isProclubsMode, setIsProclubsMode] = useState(false);
   const [normalSquad, setNormalSquad] = useState({
     goalkeeper: null,
@@ -158,7 +161,8 @@ const FootballField = () => {
     midfield: [],
     forwards: []
   });
-  const SCALE_FACTOR = 0.6;
+
+  // State for player selection and creation
   const [selectedPosition, setSelectedPosition] = useState<any>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [newPlayer, setNewPlayer] = useState({
@@ -170,49 +174,34 @@ const FootballField = () => {
     playerImage: ""
   });
   const [createPlayerModal, setCreatePlayerModal] = useState(false);
+
   const auth = getAuth();
   const user = auth.currentUser;
   const db = getDatabase();
 
-  // Aktif takımı seç
+  // Active squad based on mode
   const activeSquad = isProclubsMode ? proclubsSquad : normalSquad;
   const setActiveSquad = isProclubsMode ? setProclubsSquad : setNormalSquad;
 
-  // Firebase'den takım yükle
+  // Load team data from Firebase
   const loadTeamFromFirebase = async (isProclub: boolean) => {
     if (!user) return;
     const teamRef = isProclub
       ? ref(db, `users/${user.uid}/MyTeam/ProClub`)
       : ref(db, `users/${user.uid}/MyTeam`);
-      
+
     try {
       const snapshot = await get(teamRef);
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const newSquadState = { goalkeeper: null, defense: [], midfield: [], forwards: [] };
-        
-        if (data.Players) {
-          const playersArray = Object.values(data.Players);
-          playersArray.forEach((player: any) => {
-            const posStr = isProclub ? player?.position : player?.player_info?.Position;
-            const category = getCategoryFromPosition(posStr);
-            if (category) {
-              if (category === "goalkeeper") {
-                newSquadState.goalkeeper = player;
-              } else {
-                newSquadState[category].push(player);
-              }
-            }
-          });
+        if (data.squad) {
+          if (isProclub) {
+            setProclubsSquad(data.squad);
+          } else {
+            setNormalSquad(data.squad);
+          }
         }
-        
-        if (isProclub) {
-          setProclubsSquad(newSquadState);
-          setSelectedFormation(data.formation || "4-4-2");
-        } else {
-          setNormalSquad(newSquadState);
-          setSelectedFormation(data.formation || "4-4-2");
-        }
+        setSelectedFormation(data.formation || "4-4-2");
       }
     } catch (error) {
       console.error("Error loading team:", error);
@@ -220,10 +209,13 @@ const FootballField = () => {
   };
 
   useEffect(() => {
-    loadTeamFromFirebase(isProclubsMode);
-  }, [isProclubsMode, user]);
+    if (user) {
+      loadTeamFromFirebase(false);
+      loadTeamFromFirebase(true);
+    }
+  }, [user]);
 
-  // Takımı Firebase'e kaydet
+  // Save team data to Firebase
   const saveTeamToFirebase = async (squadData: any) => {
     if (!user) return;
 
@@ -231,22 +223,9 @@ const FootballField = () => {
       ? ref(db, `users/${user.uid}/MyTeam/ProClub`)
       : ref(db, `users/${user.uid}/MyTeam`);
 
-    const allPlayers = [
-      squadData.goalkeeper,
-      ...squadData.defense,
-      ...squadData.midfield,
-      ...squadData.forwards
-    ].filter(Boolean);
-
     const teamData = {
       formation: selectedFormation,
-      Players: allPlayers.reduce((acc: any, player, index) => {
-        acc[`Player${index + 1}`] = isProclubsMode ? {
-          ...player,
-          overall: parseInt(player.overall, 10)
-        } : player;
-        return acc;
-      }, {})
+      squad: squadData,
     };
 
     try {
@@ -258,7 +237,7 @@ const FootballField = () => {
     }
   };
 
-  // Oyuncu seçim işlemleri
+  // Handle player selection from the list
   const handlePlayerSelect = (card: any) => {
     const updatedSquad = { ...activeSquad };
     if (selectedPlayer.category === "goalkeeper") {
@@ -272,7 +251,7 @@ const FootballField = () => {
     setSelectedPlayer(null);
   };
 
-  // Pro Clubs için oyuncu oluşturma
+  // Create player for Proclubs mode
   const handleCreateProclubsPlayer = () => {
     const newPlayerData = {
       ...newPlayer,
@@ -285,7 +264,7 @@ const FootballField = () => {
     } else {
       updatedSquad[selectedPosition.category][selectedPosition.index] = newPlayerData;
     }
-    
+
     setProclubsSquad(updatedSquad);
     setCreatePlayerModal(false);
     setNewPlayer({ name: "", overall: "50", position: "", cardName: "", cardThema: "", playerImage: "" });
@@ -296,7 +275,7 @@ const FootballField = () => {
     handleCreateProclubsPlayer();
   };
 
-  // Yeni oyuncu veya oyuncu değiştirme işlemi için pozisyon seçimi
+  // Handle player press for selecting or creating a player
   const handlePlayerPress = (category: string, index: number) => {
     if (isProclubsMode) {
       setSelectedPosition({ category, index });
@@ -306,22 +285,30 @@ const FootballField = () => {
     }
   };
 
-  // Sahanın ölçülerini belirlemek için onLayout
+  // Get field dimensions on layout
   const onFieldLayout = (event: any) => {
     const { width, height } = event.nativeEvent.layout;
     setFieldDimensions({ width, height });
   };
 
+  // Render players on the field
   const renderPlayers = () => {
     if (!fieldDimensions.width || !fieldDimensions.height) return null;
-    const formation = formations[selectedFormation].positions;
-    const playerCardWidth = 60 * 1.4;
-    const playerCardHeight = 80 * 1.4;
+
+    const playerCardWidth = 42 * (2 / 3);
+    const playerCardHeight = 56 * (2 / 3);
     const halfWidth = playerCardWidth / 2;
     const halfHeight = playerCardHeight / 2;
+
+    const formation = formations[selectedFormation].positions;
+
     const generatePositions = (positions: any, category: string) => {
       return positions.map((pos: any, index: number) => {
-        const playerData = category === "goalkeeper" ? activeSquad.goalkeeper : activeSquad[category][index];
+        const playerData =
+          category === "goalkeeper"
+            ? activeSquad.goalkeeper
+            : activeSquad[category][index];
+
         return (
           <TouchableOpacity
             key={`${category}-${index}`}
@@ -329,9 +316,8 @@ const FootballField = () => {
             style={[
               styles.player,
               {
-                left: pos.x * fieldDimensions.width * SCALE_FACTOR - halfWidth,
-                top: pos.y * fieldDimensions.height * SCALE_FACTOR - halfHeight,
-                transform: [{ scale: SCALE_FACTOR }]
+                left: pos.x * fieldDimensions.width - halfWidth,
+                top: pos.y * fieldDimensions.height - halfHeight - 70
               }
             ]}
           >
@@ -362,49 +348,48 @@ const FootballField = () => {
         );
       });
     };
+
     return (
       <>
-        {generatePositions(formations[selectedFormation].positions.goalkeeper, "goalkeeper")}
-        {generatePositions(formations[selectedFormation].positions.defense, "defense")}
-        {generatePositions(formations[selectedFormation].positions.midfield, "midfield")}
-        {generatePositions(formations[selectedFormation].positions.forwards, "forwards")}
+        {generatePositions(formation.goalkeeper, "goalkeeper")}
+        {generatePositions(formation.defense, "defense")}
+        {generatePositions(formation.midfield, "midfield")}
+        {generatePositions(formation.forwards, "forwards")}
       </>
     );
   };
 
   return (
     <View style={styles.container}>
-      {/* Üstte formation & mod seçimi */}
+      {/* Top bar with formation dropdown and mode selection */}
       <View style={styles.topBar}>
-        <ScrollView
-          horizontal
-          contentContainerStyle={styles.formationScrollContent}
-          showsHorizontalScrollIndicator={false}
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={() => setShowFormationDropdown(!showFormationDropdown)}
         >
-          {Object.keys(formations).map((formation) => (
-            <TouchableOpacity
-              key={formation}
-              style={[
-                styles.formationButton,
-                selectedFormation === formation && styles.selectedFormationButton
-              ]}
-              onPress={() => {
-                // Sadece formation local state güncellensin.
-                setSelectedFormation(formation);
-              }}
-            >
-              <Text style={styles.formationButtonText}>{formation}</Text>
-              {selectedFormation === formation && (
-                <Ionicons
-                  name="checkmark"
-                  size={16}
-                  color="white"
-                  style={styles.checkIcon}
-                />
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          <Text style={styles.dropdownButtonText}>{selectedFormation}</Text>
+          <Ionicons
+            name={showFormationDropdown ? "chevron-up" : "chevron-down"}
+            size={20}
+            color="white"
+          />
+        </TouchableOpacity>
+        {showFormationDropdown && (
+          <View style={styles.dropdown}>
+            {Object.keys(formations).map((formation) => (
+              <TouchableOpacity
+                key={formation}
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setSelectedFormation(formation);
+                  setShowFormationDropdown(false);
+                }}
+              >
+                <Text style={styles.dropdownItemText}>{formation}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <View style={[styles.modeSelection, { marginTop: 20 }]}>
           <TouchableOpacity
             style={[styles.modeButton, !isProclubsMode && styles.selectedMode]}
@@ -426,40 +411,47 @@ const FootballField = () => {
           </TouchableOpacity>
         </View>
       </View>
-      {/* Saha ve oyuncular */}
+
+      {/* Field rectangle and players */}
       <View style={styles.rectangle}>
         <View style={styles.arenaBorder} onLayout={onFieldLayout}>
           {renderPlayers()}
         </View>
       </View>
-      {/* Alt kaydet & oyuncu ekle butonları */}
-      {/* Kaydetme butonu */}
+
+      {/* Bottom action bar */}
       <View style={styles.bottomActionBar}>
         <TouchableOpacity
           onPress={() => saveTeamToFirebase(activeSquad)}
           style={styles.saveButton}
         >
-          <Text>Takımı Kaydet</Text>
+          <Text style={styles.saveButtonText}>Takımı Kaydet</Text>
         </TouchableOpacity>
       </View>
-      <Modal visible={!!selectedPlayer}>
+
+      {/* Modal for player selection with updated animationType */}
+      <Modal visible={!!selectedPlayer} animationType="slide">
         <View style={styles.modalContent}>
           <PlayerRequest onSelect={handlePlayerSelect} />
         </View>
       </Modal>
-      <Modal visible={createPlayerModal} transparent>
+
+      {/* Modal for creating a new player in Proclubs mode */}
+      <Modal visible={createPlayerModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Yeni Oyuncu Oluştur</Text>
             <TextInput
               style={styles.input}
               placeholder="Oyuncu Adı"
+              placeholderTextColor="#ccc"
               value={newPlayer.name}
               onChangeText={(text) => setNewPlayer({ ...newPlayer, name: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Overall (1-100)"
+              placeholderTextColor="#ccc"
               keyboardType="numeric"
               value={newPlayer.overall}
               onChangeText={(text) => setNewPlayer({ ...newPlayer, overall: text })}
@@ -467,31 +459,41 @@ const FootballField = () => {
             <TextInput
               style={styles.input}
               placeholder="Pozisyon"
+              placeholderTextColor="#ccc"
               value={newPlayer.position}
               onChangeText={(text) => setNewPlayer({ ...newPlayer, position: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Kart Adı"
+              placeholderTextColor="#ccc"
               value={newPlayer.cardName}
               onChangeText={(text) => setNewPlayer({ ...newPlayer, cardName: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Kart Teması"
+              placeholderTextColor="#ccc"
               value={newPlayer.cardThema}
               onChangeText={(text) => setNewPlayer({ ...newPlayer, cardThema: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Oyuncu Resmi URL"
+              placeholderTextColor="#ccc"
               value={newPlayer.playerImage}
               onChangeText={(text) => setNewPlayer({ ...newPlayer, playerImage: text })}
             />
-            <TouchableOpacity style={styles.createButton} onPress={savePlayerToFirebaseForProclubs}>
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={savePlayerToFirebaseForProclubs}
+            >
               <Text style={styles.createButtonText}>Kaydet</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setCreatePlayerModal(false)} style={styles.closeButton}>
+            <TouchableOpacity
+              onPress={() => setCreatePlayerModal(false)}
+              style={styles.closeButton}
+            >
               <Text style={styles.closeButtonText}>İptal</Text>
             </TouchableOpacity>
           </View>
@@ -502,32 +504,56 @@ const FootballField = () => {
 };
 
 const styles = StyleSheet.create({
-  input: {
-    width: "100%",
-    borderWidth: 1,
+  container: {
+    flex: 1,
+    backgroundColor: "#121212",
+    paddingTop: 10
+  },
+  topBar: {
+    backgroundColor: "#2C2C2C",
     padding: 10,
-    marginVertical: 5,
-    borderRadius: 5,
-    borderColor: "#2E5EAA"
+    borderRadius: 12,
+    marginHorizontal: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    elevation: 3
   },
-  createButton: {
-    backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    marginTop: 10
-  },
-  createButtonText: {
-    color: "white",
-    fontWeight: "bold"
-  },
-  saveButton: {
-    backgroundColor: "#2E5EAA",
+  dropdownButton: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 25,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    backgroundColor: "#444",
     borderRadius: 8
+  },
+  dropdownButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600"
+  },
+  dropdown: {
+    backgroundColor: "#333",
+    borderRadius: 8,
+    marginTop: 5,
+    overflow: "hidden"
+  },
+  dropdownItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#444"
+  },
+  dropdownItemText: {
+    color: "white",
+    fontSize: 16
+  },
+  modeSelection: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 20
   },
   modeButton: {
     paddingVertical: 10,
@@ -542,45 +568,19 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold"
   },
-  formationScrollContent: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8
-  },
-  formationButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    borderRadius: 20,
-    backgroundColor: "#e0e0e0"
-  },
-  selectedFormationButton: {
-    backgroundColor: "#007AFF"
-  },
-  formationButtonText: {
-    color: "#666",
-    fontWeight: "600",
-    fontSize: 14
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    paddingTop: 10
-  },
   rectangle: {
-    width: width * 0.9,
-    height: height * 0.65,
+    width: width * 0.95,
+    height: height * 0.60,
     alignSelf: "center",
     backgroundColor: "#2D5F2A",
     borderRadius: 15,
     borderWidth: 2,
     borderColor: "white",
-    overflow: "hidden",
-    transform: [{ scale: 0.9 }]
+    overflow: "hidden"
   },
   arenaBorder: {
-    width: width * 0.9,
-    height: height * 0.8,
+    width: width * 0.95,
+    height: height * 0.60,
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
@@ -588,44 +588,9 @@ const styles = StyleSheet.create({
     borderColor: "white",
     position: "relative"
   },
-  modalOverlay: {
-    flex: 1,
-    height: 50,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  modalContent: {
-    height: 800,
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    width: "95%"
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center"
-  },
-  infoBox: {
-    position: "absolute",
-    bottom: 45,
-    padding: 4,
-    borderRadius: 5,
-    width: 80,
-    alignItems: "center"
-  },
-  infoText: {
-    color: "white",
-    top: 90,
-    fontSize: 12,
-    fontWeight: "bold",
-    textAlign: "center"
-  },
   player: {
-    width: 60 * 1.4,
-    height: 80 * 1.4,
+    width: 42 * (2 / 3),
+    height: 56 * (2 / 3),
     borderRadius: 10,
     position: "absolute",
     justifyContent: "center",
@@ -644,35 +609,89 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16
   },
-  topBar: {
-    backgroundColor: "white",
-    padding: 10,
-    borderRadius: 12,
-    marginHorizontal: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    elevation: 3
+  infoBox: {
+    position: "absolute",
+    bottom: 45,
+    padding: 4,
+    borderRadius: 5,
+    width: 80,
+    alignItems: "center"
+  },
+  infoText: {
+    color: "white",
+    top: 90,
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "center"
   },
   bottomActionBar: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 15,
+    alignItems: "center",
     position: "absolute",
     bottom: 20,
     alignSelf: "center"
+  },
+  saveButton: {
+    backgroundColor: "#2E5EAA",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8
   },
   saveButtonText: {
     color: "white",
     fontWeight: "600",
     marginLeft: 8
   },
-  modeSelection: {
-    flexDirection: "row",
-    gap: 8,
-    marginLeft: 10
-  }
+  modalContent: {
+    height: 800,
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    width: "95%"
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 15,
+    textAlign: "center"
+  },
+  input: {
+    width: "100%",
+    borderWidth: 1,
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 5,
+    borderColor: "#2E5EAA",
+    color: "white"
+  },
+  createButton: {
+    backgroundColor: "#007AFF",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginTop: 10
+  },
+  createButtonText: {
+    color: "white",
+    fontWeight: "bold"
+  },
+  closeButton: {
+    marginTop: 10,
+    alignItems: "center"
+  },
+  closeButtonText: {
+    color: "#333"
+  },
+  modalOverlay: {
+    flex: 1,
+    height: 50,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center"
+  },
 });
 
 export default FootballField;
