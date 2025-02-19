@@ -30,8 +30,9 @@ const LeagueDetails = ({ route }) => {
     { round: "1. Tur", matches: [] }, 
     { round: "2. Tur", matches: [] }, // 2. tur için alan oluşturduk
   ]);
+  const [selectedMatchIndex, setSelectedMatchIndex] = useState(null);
   const [fixturesData, setFixturesData] = useState({});
-
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigation = useNavigation();
   const [tournamentWinner, setTournamentWinner] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -48,6 +49,10 @@ const LeagueDetails = ({ route }) => {
 
   const [photoUrls, setPhotoUrls] = useState([]);
   const [participantsData, setParticipantsData] = useState({});
+useEffect(() => {
+  const userCompanyID = "xRDCyXloboXp4AiYC6GGnnHoFNy2"; // Kullanıcının companyID'sini al
+  checkAdminStatus(userCompanyID);
+}, []);
 
   const [selectedWeek, setSelectedWeek] = useState(null);
 
@@ -61,7 +66,24 @@ const LeagueDetails = ({ route }) => {
     }
   }, [fixturesData]);
   
-  
+  const saveParticipant = (userId, companyName) => {
+  const participantRef = ref(
+    database,
+    `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/participants/${userId}`
+  );
+
+  update(participantRef, {
+    userId: userId,
+    companyName: companyName, // Şirket adı bilgisi yine kaydedilsin
+    won: 0,
+    draw: 0,
+    lost: 0,
+    goalDifference: 0,
+    points: 0,
+  }).then(() => {
+    console.log(`✅ Kullanıcı ${userId} başarıyla katılımcılar listesine eklendi!`);
+  }).catch((err) => console.error("❌ Katılımcı ekleme hatası:", err.message));
+};
 
 
   useEffect(() => {
@@ -185,32 +207,39 @@ const LeagueDetails = ({ route }) => {
     });
   };
   
-
   const fetchLeagueTable = () => {
-    const leagueTableRef = ref(
+    const participantsRef = ref(
       database,
-      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/LeagueTable`
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/participants`
     );
   
-    onValue(leagueTableRef, (snapshot) => {
+    onValue(participantsRef, (snapshot) => {
       if (snapshot.exists()) {
-        const teams = snapshot.val();
-        const leagueData = Object.entries(teams).map(([id, team]) => ({
+        const participants = snapshot.val();
+        const leagueData = Object.keys(participants).map((id) => ({
           id,
-          ...team,
+          companyName: participants[id].companyName || "Bilinmeyen Takım",
+          played: participants[id].played || 0,
+          won: participants[id].won || 0,
+          draw: participants[id].draw || 0,
+          lost: participants[id].lost || 0,
+          goalsFor: participants[id].goalsFor || 0,
+          goalsAgainst: participants[id].goalsAgainst || 0,
+          goalDifference: (participants[id].goalsFor || 0) - (participants[id].goalsAgainst || 0),
+          points: (participants[id].won || 0) * 3 + (participants[id].draw || 0) * 1,
         }));
   
+        // **🔥 Puan tablosunu güncelle ve sıralama yap**
         leagueData.sort(
           (a, b) =>
-            b.points - a.points ||
-            b.goalDifference - a.goalDifference ||
-            b.won - a.won
+            b.points - a.points || // Önce puana göre sırala
+            b.goalDifference - a.goalDifference || // Eğer puan eşitse averaja göre sırala
+            b.won - a.won // Eğer averaj da eşitse kazanılan maça göre sırala
         );
   
         setLeagueTable(leagueData);
       } else {
-        console.log("⛔ Puan tablosu bulunamadı. `participants`'tan veri çekiliyor...");
-        fetchParticipantsAsLeagueTable();
+        console.log("⛔ Puan tablosu verisi bulunamadı.");
       }
     });
   };
@@ -302,7 +331,12 @@ const LeagueDetails = ({ route }) => {
     });
   };
   
-  
+  const rules = {
+    1: "Each team must have at least 5 players registered.",
+    2: "All matches will follow a knockout format.",
+    3: "Each game will last for 40 minutes.",
+    4: "Players must wear their respective team jerseys."
+  };
   
   useEffect(() => {
     if (!tournament || !tournament.startDate) {
@@ -532,7 +566,6 @@ const LeagueDetails = ({ route }) => {
     }
   };
   
-  
   const createCompleteLeagueFixtures = () => {
     console.log("🏆 Lig Fikstürü Oluşturuluyor...");
   
@@ -541,7 +574,10 @@ const LeagueDetails = ({ route }) => {
       return;
     }
   
-    const fixturesRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`);
+    const fixturesRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures`
+    );
   
     console.log("📡 Firebase’den mevcut fikstürler çekiliyor...");
   
@@ -553,13 +589,17 @@ const LeagueDetails = ({ route }) => {
   
       console.log("🚀 Yeni Lig Fikstürü Oluşturuluyor...");
   
-      const teams = teamsData.map(team => team.companyName); // 🔥 Takım isimlerini çekiyoruz!
+      const teams = teamsData.map(team => ({
+        companyName: team.companyName,
+        teamId: team.id,
+      }));
+  
       const totalRounds = teams.length - 1;
       const matchesPerRound = Math.floor(teams.length / 2);
       let fixtures = {};
   
       if (teams.length % 2 !== 0) {
-        teams.push("BAY");
+        teams.push({ companyName: "BAY", teamId: null });
       }
   
       for (let round = 1; round <= totalRounds; round++) {
@@ -569,10 +609,12 @@ const LeagueDetails = ({ route }) => {
           let team1 = teams[match];
           let team2 = teams[teams.length - 1 - match];
   
-          if (team1 !== "BAY" && team2 !== "BAY") {
+          if (team1.companyName !== "BAY" && team2.companyName !== "BAY") {
             fixtures[round].push({
-              team1,
-              team2,
+              team1: team1.companyName,
+              team1Id: team1.teamId,  // 🔥 ID EKLENDİ
+              team2: team2.companyName,
+              team2Id: team2.teamId,  // 🔥 ID EKLENDİ
               team1Score: null,
               team2Score: null,
               winner: null,
@@ -1099,8 +1141,9 @@ const LeagueDetails = ({ route }) => {
       }
     });
   }, []);
-
   const saveMatchResult = (match, matchWeek, matchIndex) => {
+    console.log("✅ Maç kaydetme işlemi başladı:", match);
+  
     const { team1, team2, team1Score, team2Score } = match;
   
     if (team1Score === null || team2Score === null || isNaN(team1Score) || isNaN(team2Score)) {
@@ -1109,24 +1152,38 @@ const LeagueDetails = ({ route }) => {
     }
   
     let winner = null;
-    if (team1Score > team2Score) winner = team1;
-    else if (team2Score > team1Score) winner = team2;
+    if (team1Score > team2Score) winner = match.team1Id;
+    else if (team2Score > team1Score) winner = match.team2Id;
+  
+    // **Takım ID'lerini buluyoruz**
+    const team1Id = match.team1Id; // 🛠 Doğrudan match içinden al!
+    const team2Id = match.team2Id;
+  
+    if (!team1Id || !team2Id) {
+      console.error("❌ Takım ID bulunamadı:", { team1, team2 });
+      Alert.alert("Hata", "Takım ID'leri bulunamadı.");
+      return;
+    }
+  
+    console.log("📌 Takım ID’leri bulundu:", { team1Id, team2Id });
   
     const matchRef = ref(
       database,
       `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/fixtures/${matchWeek}/${matchIndex}`
     );
   
-    update(matchRef, { team1Score, team2Score, winner })
+    update(matchRef, {
+      team1Score,
+      team2Score,
+      winner,
+    })
       .then(() => {
-        console.log(`✅ ${matchWeek}. Hafta maç sonucu kaydedildi.`);
-        updateLeagueTableAfterMatch(team1, team2, team1Score, team2Score);
+        console.log(`✅ ${matchWeek}. Hafta maç sonucu ID ile kaydedildi.`);
+        updateParticipantsStats(team1Id, team2Id, team1Score, team2Score);
       })
       .catch((err) => console.error("❌ Firebase Hatası:", err.message));
   };
   
-
-
   const updateLeagueTableAfterMatch = (team1, team2, team1Score, team2Score) => {
     const leagueTableRef = ref(
       database,
@@ -1159,7 +1216,85 @@ const LeagueDetails = ({ route }) => {
       }
   
       update(leagueTableRef, leagueTable);
+      updateParticipantsStats(team1, team2, team1Score, team2Score);
     });
+  };
+  
+  const updateParticipantsStats = async (team1Id, team2Id, team1Score, team2Score) => {
+    try {
+      const participantsRef1 = ref(
+        database,
+        `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/participants/${team1Id}`
+      );
+  
+      const participantsRef2 = ref(
+        database,
+        `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.tournamentId}/participants/${team2Id}`
+      );
+  
+      const snapshot1 = await get(participantsRef1);
+      const snapshot2 = await get(participantsRef2);
+  
+      let team1Stats = snapshot1.exists() ? snapshot1.val() : {};
+      let team2Stats = snapshot2.exists() ? snapshot2.val() : {};
+  
+      // 🛠 Eğer istatistikler eksikse 0 ile başlat
+      team1Stats.played = Number(team1Stats.played) || 0;
+      team1Stats.won = Number(team1Stats.won) || 0;
+      team1Stats.lost = Number(team1Stats.lost) || 0;
+      team1Stats.draw = Number(team1Stats.draw) || 0;
+      team1Stats.goalsFor = Number(team1Stats.goalsFor) || 0;
+      team1Stats.goalsAgainst = Number(team1Stats.goalsAgainst) || 0;
+      team1Stats.average = Number(team1Stats.average) || 0;
+      team1Stats.points = Number(team1Stats.points) || 0;
+  
+      team2Stats.played = Number(team2Stats.played) || 0;
+      team2Stats.won = Number(team2Stats.won) || 0;
+      team2Stats.lost = Number(team2Stats.lost) || 0;
+      team2Stats.draw = Number(team2Stats.draw) || 0;
+      team2Stats.goalsFor = Number(team2Stats.goalsFor) || 0;
+      team2Stats.goalsAgainst = Number(team2Stats.goalsAgainst) || 0;
+      team2Stats.average = Number(team2Stats.average) || 0;
+      team2Stats.points = Number(team2Stats.points) || 0;
+  
+      // **Maç oynandı, oynanan maç sayısını artır**
+      team1Stats.played += 1;
+      team2Stats.played += 1;
+  
+      // **Atılan ve yenilen goller**
+      team1Stats.goalsFor += team1Score;
+      team1Stats.goalsAgainst += team2Score;
+      team2Stats.goalsFor += team2Score;
+      team2Stats.goalsAgainst += team1Score;
+  
+      // **Averaj hesapla**
+      team1Stats.average = team1Stats.goalsFor - team1Stats.goalsAgainst;
+      team2Stats.average = team2Stats.goalsFor - team2Stats.goalsAgainst;
+  
+      // **Kazananı ve kaybedeni belirle**
+      if (team1Score > team2Score) {
+        team1Stats.won += 1;
+        team1Stats.points += 3;
+        team2Stats.lost += 1;
+      } else if (team2Score > team1Score) {
+        team2Stats.won += 1;
+        team2Stats.points += 3;
+        team1Stats.lost += 1;
+      } else {
+        team1Stats.draw += 1;
+        team2Stats.draw += 1;
+        team1Stats.points += 1;
+        team2Stats.points += 1;
+      }
+  
+      // **🔥 Firebase'e istatistikleri kaydet**
+      await update(participantsRef1, team1Stats);
+      await update(participantsRef2, team2Stats);
+  
+      console.log(`✅ ${team1Id} ve ${team2Id} istatistikleri güncellendi.`);
+    } catch (err) {
+      console.error("❌ Firebase Hatası:", err.message);
+    }
   };
   
 
@@ -1315,74 +1450,22 @@ const testLeagueTableFetch = () => {
     testLeagueTableFetch();
   }, []);
   
-  // Bracket'ta takım seçimini güncelle
-  const handleBracketChange = (roundIndex, matchIndex, field, value) => {
-    const updatedBracket = [...editableBracket];
-    updatedBracket[roundIndex].matches[matchIndex][field] = value;
-    setEditableBracket(updatedBracket);
-  };
-
-  const renderLeagueTable = () => {
-    console.log("📌 Render Edilen Takımlar:", leagueTable); // Debugging için
+  const checkAdminStatus = async (companyID) => {
+    const adminRef = ref(database, `companies/${userId}/accountInfo/userType`);
   
-    return (
-      <View style={styles.table}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerCell}>#</Text>
-          <Text style={[styles.headerCell, styles.team]}>Takım</Text>
-          <Text style={styles.headerCell}>G</Text>
-          <Text style={styles.headerCell}>B</Text>
-          <Text style={styles.headerCell}>M</Text>
-          <Text style={styles.headerCell}>A</Text>
-          <Text style={styles.headerCell}>P</Text>
-        </View>
-  
-        {leagueTable.length === 0 ? (
-          <Text style={{ color: '#fff', textAlign: 'center', marginTop: 20 }}>
-            📌 Takım bulunamadı.
-          </Text>
-        ) : (
-          <FlatList
-            data={leagueTable}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => (
-              <View style={styles.row}>
-                <Text style={styles.cell}>{index + 1}</Text>
-                <Text style={[styles.cell, styles.team]}>{item.companyName || "Bilinmeyen"}</Text>
-                <Text style={styles.cell}>{item.won}</Text>
-                <Text style={styles.cell}>{item.draw}</Text>
-                <Text style={styles.cell}>{item.lost}</Text>
-                <Text style={styles.cell}>{item.goalDifference}</Text>
-                <Text style={styles.cell}>{item.points}</Text>
-              </View>
-            )}
-          />
-        )}
-      </View>
-    );
+    try {
+      const snapshot = await get(adminRef);
+      if (snapshot.exists() && snapshot.val() === "companies") {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    } catch (error) {
+      console.error("Admin kontrolü sırasında hata oluştu:", error.message);
+      setIsAdmin(false);
+    }
   };
   
-
-  // Firebase'e bracket verilerini kaydet
-  const saveBracket = () => {
-    const bracketRef = ref(database, `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Leagues/${tournament.id}/bracket`);
-    update(bracketRef, editableBracket)
-      .then(() => Alert.alert('Başarılı', 'Bracket güncellendi'))
-      .catch((err) => Alert.alert('Hata', err.message));
-  };
-  const renderParticipantRow = ({ item, index }) => (
-    <View style={styles.row}>
-      <Text style={[styles.cell, styles.rank]}></Text>
-      <Text style={[styles.cell, styles.team]}>{item.companyName}</Text>
-      <Text style={styles.cell}> </Text>
-      <Text style={styles.cell}> </Text>
-      <Text style={styles.cell}> </Text>
-      <Text style={styles.cell}>Devam</Text>
-      <Text style={styles.cell}> </Text>
-    </View>
-  );
-
-
 
 
   const formatDate = (dateString) => {
@@ -1418,73 +1501,24 @@ const testLeagueTableFetch = () => {
           </TouchableOpacity>
         ))}
       </View>
+
       {selectedTab === 'General' && (
-  <ScrollView
-    style={styles.generalContainer}
-    showsVerticalScrollIndicator={false}
-    bounces={false} // Scroll esnemesini kapatır
-    overScrollMode="never" // Android'de esnemeyi kapatır
-  >
-
- 
-<ScrollView style={styles.generalContainer}>
-  
-          <Animatable.View animation="zoomIn" delay={400} style={styles.detailsContainer}>
-            <Text style={styles.detailText}><Text style={styles.detailLabel}>Start Date:</Text> {formatDate(tournament.startDate)}</Text>
-            <Text style={styles.detailText}><Text style={styles.detailLabel}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}</Text>
-            <Text style={styles.detailLabel}>Description:</Text>
-            <Text style={styles.generalDescription}>{tournament.tournamentDescription || 'There is no Description.'}</Text>
-            <View style={styles.detailsContainer}>
-
-
-<View style={styles.podiumContainer}>
-
-    <View style={[styles.podium, styles.second]}>
-      <Text style={styles.podiumText}>2</Text>
-      <Text style={styles.gpText}>500 GP</Text>  
-    </View>
-  
- 
-  <View style={[styles.podium, styles.first]}>
-    <Text style={styles.podiumText}>1</Text>
-    <Text style={styles.gpText}>1000 GP</Text>  
-  </View>
-  
-  {/* 3. Podium */}
-  <View style={[styles.podium, styles.third]}>
-    <Text style={styles.podiumText}>3</Text>
-    <Text style={styles.gpText}>250 GP</Text> 
-  </View>
-</View>
-
-
-
-<View style={styles.prizeContainer}>
-<View style={styles.prizeBackground}>
-<Text style={styles.prizeText}>
-{tournament.participantCount &&
-tournament.participationFee &&
-tournament.prizePercentage
-? `${(
-    (tournament.participantCount *
-      tournament.participationFee *
-      tournament.prizePercentage) /
-    100
-  )} TL`
-: '480 TL'}
-</Text>
-</View>
-</View>
-
-
-
-</View>
+        <ScrollView style={styles.generalContainer} showsVerticalScrollIndicator={false}>
+          <Animatable.View animation="fadeInUp" delay={200} style={styles.detailsContainer}>
+            <Image source={require('./assets/fixture_background.png')} style={styles.bannerImage} />
+            <View style={styles.infoCard}>
+              <Text style={styles.detailText}><Ionicons name="calendar" size={18} color="#f39c12" /> <Text style={styles.detailLabel}>Start Date:</Text> {formatDate(tournament.startDate)}</Text>
+              <Text style={styles.detailText}><Ionicons name="cash" size={18} color="#f39c12" /> <Text style={styles.detailLabel}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}</Text>
+              <Text style={styles.detailLabel}>Description:</Text>
+              <Text style={styles.generalDescription}>{tournament.tournamentDescription || 'There is no Description.'}</Text>
+              <Text style={styles.detailLabel}>Rules:</Text>
+              {Object.entries(rules).map(([key, rule]) => (
+                <Text key={key} style={styles.rulesText}>{key}. {rule}</Text>
+              ))}
+            </View>
           </Animatable.View>
         </ScrollView>
-
-
-  </ScrollView>
-)}
+      )}
 
 {selectedTab === 'Fixtures' && (
   <ScrollView style={styles.bracketContainer}>
@@ -1505,7 +1539,7 @@ tournament.prizePercentage
               styles.weekButtonText,
               selectedWeek === week && styles.weekButtonTextSelected
             ]}>
-              {week}. Hafta
+              {week}. Week
             </Text>
           </TouchableOpacity>
         ))}
@@ -1513,40 +1547,107 @@ tournament.prizePercentage
     </View>
 
     {/* 🔥 Seçilen Haftanın Maçlarını Göster */}
-    {selectedWeek && fixturesData[selectedWeek] ? (
-      <View key={selectedWeek} style={styles.roundContainer}>
-        <Text style={styles.roundTitle}>{selectedWeek}. Hafta</Text>
-        {fixturesData[selectedWeek]?.map((match, matchIndex) => (
-          <TouchableOpacity
-            key={matchIndex}
-            style={styles.matchContainer}
-            onPress={() => showMatchDetails(match, selectedWeek)}
-          >
-               <Image
-                              source={require('./assets/fixture_background2.png')}
-                              style={styles.backgroundVideo}
-                              resizeMode="cover"
-                              shouldPlay
-                              isLooping
-                              isMuted
-                            />
-            <Text style={styles.teamText}>{match.team1 || 'Bekleniyor'}</Text>
-            <Text style={styles.scoreText}>
-              {match.team1Score != null && match.team2Score != null
-                ? `${match.team1Score} - ${match.team2Score}`
-                : 'VS'}
-            </Text>
-            <Text style={styles.teamText}>{match.team2 || 'Bekleniyor'}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    ) : (
-      <Text style={styles.noMatchesText}>Bu hafta için maç bulunamadı.</Text>
+{/* 🔥 Seçilen Haftanın Maçlarını Göster */}
+{selectedWeek && fixturesData[selectedWeek] ? (
+  <View key={selectedWeek} style={styles.roundContainer}>
+    <Text style={styles.roundTitle}>{selectedWeek}. Week</Text>
+    {fixturesData[selectedWeek]?.map((match, matchIndex) => (
+  <TouchableOpacity
+    key={matchIndex}
+    style={styles.matchContainer}
+    onPress={() => {
+      if (!isAdmin) {
+        // Eğer admin değilse direkt detaylara git
+        showMatchDetails(match, selectedWeek);
+      }
+    }}
+  >
+    <Image
+      source={require('./assets/fixture_background2.png')}
+      style={styles.backgroundVideo}
+      resizeMode="cover"
+    />
+
+    {/* Takım Bilgileri */}
+    <Text style={styles.teamText}>{match.team1 || 'Bekleniyor'}</Text>
+    <Text style={styles.scoreText}>
+      {match.team1Score != null && match.team2Score != null
+        ? `${match.team1Score} - ${match.team2Score}`
+        : 'VS'}
+    </Text>
+    <Text style={styles.teamText}>{match.team2 || 'Bekleniyor'}</Text>
+
+    {/* Eğer kullanıcı adminse "Skoru Düzenle" butonu göster */}
+    {isAdmin && (
+      <TouchableOpacity
+        onPress={(event) => {
+          event.stopPropagation(); // 🔥 Ana butona tıklamayı engelle
+          setSelectedMatch(match);
+          setSelectedWeek(selectedWeek);
+          setSelectedMatchIndex(matchIndex);
+          setIsModalVisible(true); // 🔥 Skor düzenleme modalını aç
+        }}
+        style={styles.editButton}
+      >
+        <Text style={styles.editScoreText}>⚙️</Text>
+      </TouchableOpacity>
     )}
+  </TouchableOpacity>
+))}
+  </View>
+) : (
+  <Text style={styles.noMatchesText}>There is no match for this week.</Text>
+)}
+
+
 
   </ScrollView>
 )}
+<Modal
+  transparent={true}
+  animationType="slide"
+  visible={isModalVisible}
+  onRequestClose={() => setIsModalVisible(false)}
+>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Maç Skorunu Düzenle</Text>
+      
+      <Text style={styles.teamText}>{selectedMatch?.team1} vs {selectedMatch?.team2}</Text>
 
+      <TextInput
+        style={styles.input}
+        placeholder="Takım 1 Skoru"
+        keyboardType="numeric"
+        value={selectedMatch?.team1Score?.toString() || ''}
+        onChangeText={(value) =>
+          setSelectedMatch((prev) => ({ ...prev, team1Score: parseInt(value) || 0 }))
+        }
+      />
+      <Text style={styles.vsText}>VS</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Takım 2 Skoru"
+        keyboardType="numeric"
+        value={selectedMatch?.team2Score?.toString() || ''}
+        onChangeText={(value) =>
+          setSelectedMatch((prev) => ({ ...prev, team2Score: parseInt(value) || 0 }))
+        }
+      />
+
+      <TouchableOpacity
+        onPress={() => saveMatchResult(selectedMatch, selectedWeek, selectedMatchIndex)}
+        style={styles.saveButton}
+      >
+        <Text style={styles.saveButtonText}>Skoru Kaydet</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.closeButton}>
+        <Text style={styles.closeButtonText}>Kapat</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
 
 
 <Modal
@@ -1658,31 +1759,33 @@ tournament.prizePercentage
 {selectedTab === 'Teams' && (
   <View style={styles.table}>
     {/* Başlık Satırı */}
-    <View style={styles.headerRow}>
-      <Text style={[styles.headerCell, styles.rank]}>#</Text>
-      <Text style={[styles.headerCell, styles.team]}>Takım</Text>
-      <Text style={styles.headerCell}>G</Text>
-      <Text style={styles.headerCell}>B</Text>
-      <Text style={styles.headerCell}>M</Text>
-      <Text style={styles.headerCell}>A</Text>
-      <Text style={styles.headerCell}>P</Text>
+    <View style={styles.row}>
+      <Text style={[styles.cell, styles.rank]}></Text>
+      <Text style={[styles.cell, styles.team]}>Teams</Text>
+      <Text style={styles.cell}>W</Text>
+      <Text style={styles.cell}>D</Text>
+      <Text style={styles.cell}>L</Text>
+      <Text style={styles.cell}>G</Text>
+      <Text style={styles.cell}>P</Text>
     </View>
-
     <FlatList
-      data={leagueTable}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item, index }) => (
-        <View style={styles.row}>
-          <Text style={[styles.cell, styles.rank]}>{index + 1}</Text>
-          <Text style={[styles.cell, styles.team]}>{item.companyName || "Bilinmeyen"}</Text>
-          <Text style={styles.cell}>{item.won}</Text>
-          <Text style={styles.cell}>{item.draw}</Text>
-          <Text style={styles.cell}>{item.lost}</Text>
-          <Text style={styles.cell}>{item.goalDifference}</Text>
-          <Text style={styles.cell}>{item.points}</Text>
-        </View>
-      )}
-    />
+  data={leagueTable}
+  keyExtractor={(item) => item.id}
+  keyboardShouldPersistTaps="handled" // Klavye varsa bile kaydırmayı engellemez
+  contentContainerStyle={{ paddingBottom: 250 }}
+  renderItem={({ item, index }) => (
+    <View style={styles.row}>
+      <Text style={[styles.cell, styles.rank]}>{index + 1}</Text>
+      <Text style={[styles.cell, styles.team]}>{item.companyName || "Bilinmeyen"}</Text>
+      <Text style={styles.cell}>{item.won}</Text>
+      <Text style={styles.cell}>{item.draw}</Text>
+      <Text style={styles.cell}>{item.lost}</Text>
+      <Text style={styles.cell}>{item.goalDifference}</Text>
+      <Text style={styles.cell}>{item.points}</Text>
+    </View>
+  )}
+/>
+
   </View>
 )}
 
@@ -1726,7 +1829,13 @@ tournament.prizePercentage
 };
 
 const styles = StyleSheet.create({
-
+  generalContainer: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 15, marginTop: 10 },
+  detailsContainer: { marginTop: 10, marginBottom: 10, padding: 10, backgroundColor: '#000', borderRadius: 10 },
+  bannerImage: { width: '100%', height: 180, borderRadius: 10, marginBottom: 15 },
+  infoCard: { backgroundColor: '#121212', padding: 15, borderRadius: 10, marginBottom: 15 },
+  detailText: { fontSize: 16, color: '#FFF', marginBottom: 5 },
+  detailLabel: { fontWeight: 'bold', color: '#f39c12' },
+  generalDescription: { fontSize: 14, color: '#FFF', lineHeight: 20 },
     weekSelectorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1735,6 +1844,13 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         backgroundColor: '#000',
         borderRadius: 10,
+      },
+      editScoreText: {
+        color: '#f39c12', // Turuncu renk
+        fontSize: 14,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 5,
       },
       
       weekSelectorText: {
@@ -1788,15 +1904,15 @@ const styles = StyleSheet.create({
       },
       headerCell: {
         fontSize: 14,
-        fontWeight: 'bold',
         color: '#fff',
         textAlign: 'center',
+        right:7,
         flex: 1,
       },
       row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 10,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#333',
       },
@@ -1816,7 +1932,7 @@ const styles = StyleSheet.create({
     width: 40,
     textAlign: 'center',
   },
-   
+  rulesText: { fontSize: 14, color: '#FFF', marginBottom: 3 },
   evenRow: {
     backgroundColor: '#000',
   },
@@ -1839,8 +1955,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  generalContainer: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 15, marginTop: 10 },
-  lottieContainer: { alignItems: 'center', justifyContent: 'center', height: 100 },
+    lottieContainer: { alignItems: 'center', justifyContent: 'center', height: 100 },
   lottie: { width: 150, height: 150 },
 
   chatContainer: {
@@ -1956,18 +2071,7 @@ overlayContainer: {
     borderRadius: 10,
     marginBottom: 15,
   },
-  detailsContainer: {
-    marginTop: 10,
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: '#000',
-    borderRadius: 10,
-  },
-  detailText: {
-    fontSize: 16,
-    color: '#FFF',
-    marginBottom: 5,
-  },
+ 
   waitingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1981,11 +2085,7 @@ overlayContainer: {
     color: '#fff',
     textAlign: 'center',
   },
-  
-  detailLabel: {
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+ 
   imageContainer: {
     alignItems: 'center',
     marginBottom: 10,
@@ -2248,11 +2348,6 @@ overlayContainer: {
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 5,
-  },
-  generalDescription: {
-    fontSize: 14,
-    color: '#fff',
-    lineHeight: 20,
   },
   tabContent: {
     color: '#fff',

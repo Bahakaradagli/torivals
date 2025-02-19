@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   loginButton: {
-    backgroundColor: 'rgba(1, 39, 85, 0.6)',
+    backgroundColor: 'rgba(42, 167, 138, 0.37)',
     borderRadius: 10,
     paddingVertical: 10,
     width: '100%',
@@ -213,6 +213,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   signupText: {
-    color: '#012755',
+    color: '#00343f',
   },
 });

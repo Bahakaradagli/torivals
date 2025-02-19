@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Modal, ScrollView, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet,Dimensions, FlatList, Modal, ScrollView, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { ref, onValue,get, update } from 'firebase/database';
 import { database } from './firebase'; // Firebase baglantı dosyanız
@@ -8,6 +8,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref as storageRef, uploadBytes,listAll,deleteObject , getDownloadURL } from 'firebase/storage';
 import { useNavigation } from '@react-navigation/native';
+import Carousel from 'react-native-snap-carousel';
+import Animated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, interpolate } from 'react-native-reanimated';
+
+const { width } = Dimensions.get('window'); // Ekran genişliği
+const ITEM_WIDTH = width * 0.64; // Kart genişliği
+const SPACING = 30; // Kartlar arasındaki boşluk
+const BANNER_HEIGHT = 150; // Yükseklik
 
 
 
@@ -15,6 +22,9 @@ import LottieView from 'lottie-react-native';
 import * as Animatable from 'react-native-animatable';
 
 const TournamentDetails = ({ route }) => {
+
+
+
   const { tournament } = route.params;
   const tabs = ['General', 'Fixtures', 'Teams', 'Chat'];
   const [selectedTab, setSelectedTab] = useState('General');
@@ -945,6 +955,8 @@ const createNextRound = async (currentRoundIndex) => {
           </TouchableOpacity>
         ))}
       </View>
+      
+
       {selectedTab === 'General' && (
   <ScrollView
     style={styles.generalContainer}
@@ -952,64 +964,86 @@ const createNextRound = async (currentRoundIndex) => {
     bounces={false} // Scroll esnemesini kapatır
     overScrollMode="never" // Android'de esnemeyi kapatır
   >
+    <ScrollView style={styles.generalContainer}>
+      <Animatable.View animation="zoomIn" delay={400} style={styles.detailsContainer}>
+      <View style={styles.rulesContainer}>
+        <Text style={styles.detailText}>
+          <Text style={styles.rulesTitle}>Start Date:</Text> {tournament.startDate}
+        </Text>
+        <Text style={styles.detailText}>
+          <Text style={styles.rulesTitle}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}
+        </Text>
 
- 
-<ScrollView style={styles.generalContainer}>
-  
-          <Animatable.View animation="zoomIn" delay={400} style={styles.detailsContainer}>
-            <Text style={styles.detailText}><Text style={styles.detailLabel}>Start Date:</Text> {formatDate(tournament.startDate)}</Text>
-            <Text style={styles.detailText}><Text style={styles.detailLabel}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}</Text>
-            <Text style={styles.detailLabel}>Description:</Text>
-            <Text style={styles.generalDescription}>{tournament.tournamentDescription || 'There is no Description.'}</Text>
-            <View style={styles.detailsContainer}>
+        <Text style={styles.detailText}>
+          <Text style={styles.rulesTitle}>Description:</Text> {tournament.tournamentDescription || 'There is no Description.'}
+        </Text>
 
 
-<View style={styles.podiumContainer}>
-
-    <View style={[styles.podium, styles.second]}>
-      <Text style={styles.podiumText}>2</Text>
-      <Text style={styles.gpText}>500 GP</Text>  
-    </View>
-  
- 
-  <View style={[styles.podium, styles.first]}>
-    <Text style={styles.podiumText}>1</Text>
-    <Text style={styles.gpText}>1000 GP</Text>  
-  </View>
-  
-  {/* 3. Podium */}
-  <View style={[styles.podium, styles.third]}>
-    <Text style={styles.podiumText}>3</Text>
-    <Text style={styles.gpText}>250 GP</Text> 
-  </View>
-</View>
+        </View>
 
 
 
-<View style={styles.prizeContainer}>
-<View style={styles.prizeBackground}>
-<Text style={styles.prizeText}>
-{tournament.participantCount &&
-tournament.participationFee &&
-tournament.prizePercentage
-? `${(
-    (tournament.participantCount *
-      tournament.participationFee *
-      tournament.prizePercentage) /
-    100
-  )} TL`
-: '480 TL'}
-</Text>
-</View>
-</View>
+        <View style={styles.rulesContainer}>
+          {/* Takım Kuralları */}
+          {tournament.teamRules && tournament.teamRules.length > 0 && (
+            <>
+              <Text style={styles.rulesTitle}>Team Rules:</Text>
+              {tournament.teamRules.map((rule, index) => (
+                <Text key={index} style={styles.rulesText}>• {rule}</Text>
+              ))}
+            </>
+          )}
+        </View>
 
+        {/* 📌 **Turnuva Kuralları & Takım Kuralları Bölümü** */}
+        <View style={styles.rulesContainer}>
+          {/* Turnuva Kuralları */}
+          {tournament.tournamentRules && tournament.tournamentRules.length > 0 && (
+            <>
+              <Text style={styles.rulesTitle}>Tournament Rules:</Text>
+              {tournament.tournamentRules.map((rule, index) => (
+                <Text key={index} style={styles.rulesText}>• {rule}</Text>
+              ))}
+            </>
+          )}
+     </View>
+     
 
+        {/* 🏆 Ödüller & Podyum */}
+        <View style={styles.detailsContainer}>
+          <View style={styles.podiumContainer}>
+            <View style={[styles.podium, styles.second]}>
+              <Text style={styles.podiumText}>2</Text>
+              <Text style={styles.gpText}>500 GP</Text>
+            </View>
+            <View style={[styles.podium, styles.first]}>
+              <Text style={styles.podiumText}>1</Text>
+              <Text style={styles.gpText}>1000 GP</Text>
+            </View>
+            <View style={[styles.podium, styles.third]}>
+              <Text style={styles.podiumText}>3</Text>
+              <Text style={styles.gpText}>250 GP</Text>
+            </View>
+          </View>
 
-</View>
-          </Animatable.View>
-        </ScrollView>
-
-
+          <View style={styles.prizeContainer}>
+            <View style={styles.prizeBackground}>
+              <Text style={styles.prizeText}>
+                {tournament.participantCount &&
+                tournament.participationFee &&
+                tournament.prizePercentage
+                  ? `${(
+                      (tournament.participantCount *
+                        tournament.participationFee *
+                        tournament.prizePercentage) / 100
+                    )} TL`
+                  : '480 TL'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Animatable.View>
+    </ScrollView>
   </ScrollView>
 )}
 
@@ -1047,13 +1081,14 @@ tournament.prizePercentage
                 onPress={() => showMatchDetails(match, roundNumber)} // Herkes detayları görebilir
               >
                 <Image
-                  source={require('./assets/fixture_background2.png')}
+                  source={require('./assets/fixture_background4.png')}
                   style={styles.backgroundVideo}
                   resizeMode="cover"
                   shouldPlay
                   isLooping
                   isMuted
                 />
+                    
                 <Text
                   style={[
                     styles.teamText,
@@ -1265,7 +1300,36 @@ tournament.prizePercentage
 };
 
 const styles = StyleSheet.create({
-
+  carouselContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  bannerWrapper: {
+    width: ITEM_WIDTH,
+    height: BANNER_HEIGHT,
+    marginHorizontal: SPACING / 2,
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 15,
+    position: 'absolute',
+  },
+  bannerText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
   table: {
     backgroundColor: '#000',
     borderRadius: 10,
@@ -1332,10 +1396,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
+  rulesContainer: {
+    backgroundColor: '#000', // Koyu tema
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 15,
+    shadowColor: '#ffcc00',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 5,
+  },
   
   generalContainer: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 15, marginTop: 10 },
   lottieContainer: { alignItems: 'center', justifyContent: 'center', height: 100 },
-  lottie: { width: 150, height: 150 },
+  lottie: { width: 100, height: 150 },
 
   chatContainer: {
     flex: 1,
@@ -1356,7 +1431,21 @@ const styles = StyleSheet.create({
     padding: 10,
     marginRight: 10,
   },
-
+  rulesTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffcc00',
+    marginTop: 15,
+    marginBottom: 5,
+    textAlign: 'left',
+  },
+  rulesText: {
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 5,
+    textAlign: 'left',
+  },
+  
   sendButtonText: {
     color: '#121212',
     fontWeight: 'bold',

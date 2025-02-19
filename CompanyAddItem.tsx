@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Button, TextInput, Scr
 import { getAuth } from 'firebase/auth';
 import { getDatabase, ref, update, push } from 'firebase/database';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-
+import DateTimePicker from '@react-native-community/datetimepicker';
 export default function TournamentCreator() {
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentDescription, setTournamentDescription] = useState('');
@@ -20,10 +20,45 @@ export default function TournamentCreator() {
   const [thirdPlaceGP, setThirdPlaceGP] = useState(''); // 3. için GP
   const [tournamentType, setTournamentType] = useState('ProClubs'); // Turnuva Türü
   const [tournamentMode, setTournamentMode] = useState('Turnuva'); // 📌 Lig mi Turnuva mı?
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [teamRule, setTeamRule] = useState('');
+const [tournamentRule, setTournamentRule] = useState('');
+const [teamRulesList, setTeamRulesList] = useState([]);
+const [tournamentRulesList, setTournamentRulesList] = useState([]);
 
   const contentOptions = [
     'Min85 Rating','Max85 Rating','End of the Month','Free Rules','Made in Turkey'
   ];
+// Takım Kurallarına Kural Ekleme
+const addTeamRule = () => {
+  if (teamRule.trim() !== '') {
+    setTeamRulesList([...teamRulesList, teamRule]);
+    setTeamRule('');
+  }
+};
+
+// Turnuva Kurallarına Kural Ekleme
+const addTournamentRule = () => {
+  if (tournamentRule.trim() !== '') {
+    setTournamentRulesList([...tournamentRulesList, tournamentRule]);
+    setTournamentRule('');
+  }
+};
+
+// Takım Kurallarından Kural Silme
+const removeTeamRule = (index) => {
+  const updatedRules = [...teamRulesList];
+  updatedRules.splice(index, 1);
+  setTeamRulesList(updatedRules);
+};
+
+// Turnuva Kurallarından Kural Silme
+const removeTournamentRule = (index) => {
+  const updatedRules = [...tournamentRulesList];
+  updatedRules.splice(index, 1);
+  setTournamentRulesList(updatedRules);
+};
 
   const imageMap = {
     'turnuva1.png': require('./assets/turnuva1.png'),
@@ -34,7 +69,22 @@ export default function TournamentCreator() {
     'turnuva6.png': require('./assets/turnuva6.png'),
     'turnuva7.png': require('./assets/turnuva7.png'),
   };
-
+  const onChangeDate = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      // Gün/Ay/Yıl formatını düzelt
+      const formattedDate = selectedDate.toLocaleDateString('tr-TR').replace(/\./g, '/');
+      
+      // Saat ve dakika için sıfır dolgulu format
+      const formattedTime = selectedDate.toLocaleTimeString('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+  
+      setStartDate(`${formattedDate} ${formattedTime}`); // 📌 Firebase formatına uygun kaydediyoruz
+    }
+  };
   
   const handleSaveTournament = () => {
     const user = getAuth().currentUser;
@@ -63,10 +113,13 @@ export default function TournamentCreator() {
         secondPlaceGP,
         thirdPlaceGP,
         tournamentType,
-        tournamentMode, // 📌 Lig mi Turnuva mı?
+        tournamentMode,
         content: selectedContent,
         imageUrl: selectedImage,
+        teamRules: teamRulesList, // 📌 Takım kuralları Firebase'e kaydediliyor
+        tournamentRules: tournamentRulesList, // 📌 Turnuva kuralları Firebase'e kaydediliyor
       };
+      
   
       update(newTournamentRef, newTournament)
         .then(() => {
@@ -165,13 +218,22 @@ export default function TournamentCreator() {
 
       {/* GP Kazanımları */}
       <TextInput
-        style={styles.input}
-        value={firstPlaceGP}
-        onChangeText={setFirstPlaceGP}
-        placeholder="1.'nin Kazanacağı GP"
-        placeholderTextColor="gray"
-        keyboardType="numeric"
-      />
+  style={styles.input}
+  value={firstPlaceGP}
+  onChangeText={(text) => setFirstPlaceGP(text.replace(/[^0-9]/g, ''))} // Sadece rakam girilsin
+  placeholder="1.'nin Kazanacağı GP"
+  placeholderTextColor="gray"
+  keyboardType="numeric"
+/>
+<TextInput
+  style={styles.input}
+  value={participationFee}
+  onChangeText={(text) => setParticipationFee(text.replace(/[^0-9]/g, ''))}
+  placeholder="Katılım Ücreti (TL)"
+  placeholderTextColor="gray"
+  keyboardType="numeric"
+/>
+
       <TextInput
         style={styles.input}
         value={secondPlaceGP}
@@ -189,7 +251,6 @@ export default function TournamentCreator() {
         keyboardType="numeric"
       />
 
-      {/* Turnuva Fotoğrafı Seçimi */}
       <Text style={styles.label}>Turnuva Fotoğrafı</Text>
       <ScrollView horizontal style={styles.imageScroll}>
         {Object.keys(imageMap).map((key) => (
@@ -215,13 +276,19 @@ export default function TournamentCreator() {
         placeholderTextColor="gray"
         multiline
       />
-      <TextInput
-        style={styles.input}
-        value={startDate}
-        onChangeText={setStartDate}
-        placeholder="Başlangıç Tarihi (GG/AA/YYYY)"
-        placeholderTextColor="gray"
-      />
+     
+      <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
+  <Text style={{ color: 'gray' }}>{startDate || "Başlangıç Tarihi (GG/AA/YYYY HH:mm)"}</Text>
+</TouchableOpacity>
+
+{showDatePicker && (
+  <DateTimePicker
+    value={date}
+    mode="datetime"
+    display="default"
+    onChange={onChangeDate}
+  />
+)}
       <TextInput
         style={styles.input}
         value={participantCount}
@@ -237,14 +304,54 @@ export default function TournamentCreator() {
         placeholder="Shopier Linki"
         placeholderTextColor="gray"
       />
-      <TextInput
-        style={styles.input}
-        value={participationFee}
-        onChangeText={setParticipationFee}
-        placeholder="Katılım Ücreti (TL)"
-        placeholderTextColor="gray"
-        keyboardType="numeric"
-      />
+<Text style={styles.label}>Takım Kuralları</Text>
+<View style={styles.rulesContainer}>
+  <TextInput
+    style={styles.input}
+    value={teamRule}
+    onChangeText={setTeamRule}
+    placeholder="Takım kuralı girin..."
+    placeholderTextColor="gray"
+  />
+  <TouchableOpacity style={styles.addButton} onPress={addTeamRule}>
+    <Text style={styles.addButtonText}>+ Ekle</Text>
+  </TouchableOpacity>
+</View>
+
+{/* Takım Kuralları Listesi */}
+{teamRulesList.map((rule, index) => (
+  <View key={index} style={styles.ruleItem}>
+    <Text style={styles.ruleText}>{index + 1}. {rule}</Text>
+    <TouchableOpacity onPress={() => removeTeamRule(index)}>
+      <Text style={styles.removeButton}>X</Text>
+    </TouchableOpacity>
+  </View>
+))}
+
+{/* Turnuva Kuralları */}
+<Text style={styles.label}>Turnuva Kuralları</Text>
+<View style={styles.rulesContainer}>
+  <TextInput
+    style={styles.input}
+    value={tournamentRule}
+    onChangeText={setTournamentRule}
+    placeholder="Turnuva kuralı girin..."
+    placeholderTextColor="gray"
+  />
+  <TouchableOpacity style={styles.addButton} onPress={addTournamentRule}>
+    <Text style={styles.addButtonText}>+ Ekle</Text>
+  </TouchableOpacity>
+</View>
+
+{/* Turnuva Kuralları Listesi */}
+{tournamentRulesList.map((rule, index) => (
+  <View key={index} style={styles.ruleItem}>
+    <Text style={styles.ruleText}>{index + 1}. {rule}</Text>
+    <TouchableOpacity onPress={() => removeTournamentRule(index)}>
+      <Text style={styles.removeButton}>X</Text>
+    </TouchableOpacity>
+  </View>
+))}
       <TextInput
         style={styles.input}
         value={sponsorName}
@@ -326,5 +433,37 @@ const styles = StyleSheet.create({
   
   label: { color: 'white', fontSize: 16, marginBottom: 10 },
   buttonContainer: { marginTop: 20 },
-   
+  rulesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  addButton: {
+    marginLeft: 10,
+    padding: 10,
+    backgroundColor: '#3498db',
+    borderRadius: 5,
+  },
+  addButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  ruleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 5,
+  },
+  ruleText: {
+    color: 'white',
+    flex: 1,
+  },
+  removeButton: {
+    color: 'red',
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  
 });

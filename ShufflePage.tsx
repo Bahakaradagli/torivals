@@ -156,8 +156,8 @@ const SwipeableCards: React.FC = () => {
   
   const formatDate = (dateString) => {
     const months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'December'
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'September', 'December'
     ];
     const [day, month, year] = dateString.split('/');
     return `${day} ${months[parseInt(month, 10) - 1]} ${year}`;
