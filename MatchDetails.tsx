@@ -855,7 +855,7 @@ An intense match that could have gone either way!`;
 
     {/* 📌 Saha Görseli ve Oyuncular */}
     <View style={styles.lineupContainer}>
-                    <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
+                    <Image source={require("./assets/patchh.png")} style={styles.lineupImage} />
                     {userTeam.length > 0 ? (
     userTeam.map((player, index) => (
         <View key={index} style={[styles.playerPosition, { 
@@ -1197,8 +1197,8 @@ overallText: {
   // 📌 Saha Görseli ve Oyuncular
   
   lineupImage: {
-    width: "150%",
-    height: 350,
+    width: "140%",
+    height: 450,
     resizeMode: "contain",
   },
   
