@@ -18,6 +18,11 @@ const MatchDetails = ({ route }) => {
         startDate, // **Turnuvanın başlangıç tarihini aldık**
       } = route.params;
   const storage = getStorage();
+  const [userTeam, setUserTeam] = useState([]);
+const [formation, setFormation] = useState("");
+const [opponentTeam, setOpponentTeam] = useState([]);
+const [opponentFormation, setOpponentFormation] = useState("");
+
   const getRoundDelay = (round) => 5 + (round - 1) * 30; 
   const [userId, setUserId] = useState(null);
   const [matchUser1Id, setMatchUser1Id] = useState(null);
@@ -27,15 +32,18 @@ const MatchDetails = ({ route }) => {
   const [scorePhotos, setScorePhotos] = useState([]);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState(user1);
-  const [userTeam, setUserTeam] = useState(null);
-  const [formation, setFormation] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState(user1); 
   const [player1Stats, setPlayer1Stats] = useState(null);
 const [player2Stats, setPlayer2Stats] = useState(null);
 const [player1TotalPrize, setPlayer1TotalPrize] = useState(0);
 const [player2TotalPrize, setPlayer2TotalPrize] = useState(0);
 const [player1TotalXP, setPlayer1TotalXP] = useState(0);
 const [player2TotalXP, setPlayer2TotalXP] = useState(0);
+const [player1Tournaments, setPlayer1Tournaments] = useState(0);
+  const [player2Tournaments, setPlayer2Tournaments] = useState(0);
+  const [player1Trophies, setPlayer1Trophies] = useState(0);
+  const [player2Trophies, setPlayer2Trophies] = useState(0); 
+
 
 const fetchTotalPrize = async (playerId, setTotalPrize) => {
   try {
@@ -97,10 +105,6 @@ const fetchPlayerStats = async (playerId, setPlayerStats) => {
 };
 
 
-const [player1Tournaments, setPlayer1Tournaments] = useState(0);
-  const [player2Tournaments, setPlayer2Tournaments] = useState(0);
-  const [player1Trophies, setPlayer1Trophies] = useState(0);
-  const [player2Trophies, setPlayer2Trophies] = useState(0);
 
   const fetchTournamentsPlayed = async (playerId, setTournamentsPlayed) => {
     try {
@@ -155,89 +159,102 @@ useEffect(() => {
 }, [user1Id, user2Id]);
 
 
+useEffect(() => {
+    if (selectedTeam === user1) {
+        fetchOpponentTeam(user1Id, setOpponentTeam, setOpponentFormation);
+    } else {
+        fetchOpponentTeam(user2Id, setOpponentTeam, setOpponentFormation);
+    }
+}, [selectedTeam]);
 
 
-
-
-
-
-
-
-
-// 📌 Component yüklendiğinde turnuva istatistiklerini al
 useEffect(() => {
     if (user1Id) fetchPlayerStats(user1Id, setPlayer1Stats);
     if (user2Id) fetchPlayerStats(user2Id, setPlayer2Stats);
 }, [user1Id, user2Id]);
 
-  const fetchUserTeam = async (userId) => {
-      try {
-          const db = getDatabase();
-          const teamRef = dbRef(db, `users/${userId}/MyTeam`);
-          const snapshot = await get(teamRef);
-  
-          if (snapshot.exists()) {
-              const teamData = snapshot.val();
-              setUserTeam(teamData.Players || {});
-              setFormation(teamData.formation || "4-4-2"); // Varsayılan formasyon
-              console.log("📌 Kullanıcı Takımı:", teamData);
-          } else {
-              console.warn("❌ Kullanıcı takımı bulunamadı!");
-          }
-      } catch (error) {
-          console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
-      }
-  };
-  
-  // 📌 Component yüklendiğinde kullanıcı takımını çek
-  useEffect(() => {
-      if (userId) {
-          fetchUserTeam(userId);
-      }
-  }, [userId]);
-  
-  const [opponentTeam, setOpponentTeam] = useState(null);
-  const [opponentFormation, setOpponentFormation] = useState("");
-  
-  const fetchOpponentTeam = async (opponentId) => {
-      try {
-          const db = getDatabase();
-          const teamRef = dbRef(db, `users/${opponentId}/MyTeam`);
-          const snapshot = await get(teamRef);
-  
-          if (snapshot.exists()) {
-              const teamData = snapshot.val();
-              console.log(`🎯 Rakip Takım (${opponentId}):`, teamData);
-  
-              setOpponentTeam(teamData.Players || {}); // Oyuncular
-              setOpponentFormation(teamData.formation || "4-4-2"); // Formasyon
-          } else {
-              console.warn(`❌ Rakip takım (${opponentId}) bulunamadı!`);
-          }
-      } catch (error) {
-          console.error("❌ Rakip takım bilgileri alınırken hata oluştu:", error);
-      }
-  };
-  
-  // 🚀 Kullanımı:
-  useEffect(() => {
-      if (selectedTeam === user1) {
-          fetchOpponentTeam(user1Id);
+
+const fetchUserTeam = async (userId, setTeam, setFormation) => {
+  try {
+      const db = getDatabase();
+      const teamRef = dbRef(db, `users/${userId}/MyTeam`);
+      const snapshot = await get(teamRef);
+
+      if (snapshot.exists()) {
+          const teamData = snapshot.val();
+          
+          const fullSquad = [
+              ...(teamData.squad?.defense || []),
+              ...(teamData.squad?.midfield || []),
+              ...(teamData.squad?.forwards || []),
+              ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : [])
+          ];
+
+          setTeam(fullSquad); 
+          setFormation(teamData.formation || "4-4-2");
       } else {
-          fetchOpponentTeam(user2Id);
+          setTeam([]);
       }
-  }, [selectedTeam]);
+  } catch (error) {
+      console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
+      setTeam([]);
+  }
+};
+
+
+
+const fetchOpponentTeam = async (opponentId, setOpponentTeam, setOpponentFormation) => {
+  try {
+      const db = getDatabase();
+      const teamRef = dbRef(db, `users/${opponentId}/MyTeam`);
+      const snapshot = await get(teamRef);
+
+      if (snapshot.exists()) {
+          const teamData = snapshot.val();
+          
+          // 🔥 Doğru şekilde set et
+          const fullSquad = [
+              ...(teamData.squad?.defense || []),
+              ...(teamData.squad?.midfield || []),
+              ...(teamData.squad?.forwards || []),
+              ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : [])
+          ];
+
+          console.log("✅ Rakip Takım: ", fullSquad);
+          setOpponentTeam(fullSquad); // 🔥 Rakip takımı buraya set ediyoruz!
+          setOpponentFormation(teamData.formation || "4-4-2");
+      } else {
+          console.warn(`❌ Rakip takım (${opponentId}) bulunamadı!`);
+          setOpponentTeam([]);
+      }
+  } catch (error) {
+      console.error("❌ Rakip takım bilgileri alınırken hata oluştu:", error);
+      setOpponentTeam([]);
+  }
+};
+
+
+
   
+useEffect(() => {
+  if (selectedTeam === user1) {
+      fetchOpponentTeam(user2Id, setOpponentTeam, setOpponentFormation);
+  } else {
+      fetchOpponentTeam(user1Id, setOpponentTeam, setOpponentFormation);
+  }
+}, [selectedTeam]);
 
 useEffect(() => {
-  if (user1Id) {
-      fetchOpponentTeam(user1Id);
-  }
-  if (user2Id) {
-      fetchOpponentTeam(user2Id);
-  }
+  console.log("🟢 user1Id:", user1Id);
+  console.log("🟢 user2Id:", user2Id);
+  console.log("🟢 setUserTeam:", typeof setUserTeam);
+  console.log("🟢 setFormation:", typeof setFormation);
+  console.log("🟢 setOpponentTeam:", typeof setOpponentTeam);
+  console.log("🟢 setOpponentFormation:", typeof setOpponentFormation);
+  
+  if (user1Id) fetchUserTeam(user1Id, setUserTeam, setFormation);
+  if (user2Id) fetchOpponentTeam(user2Id, setOpponentTeam, setOpponentFormation);
 }, [user1Id, user2Id]);
-
 
   useEffect(() => {
     const auth = getAuth();
@@ -589,6 +606,12 @@ useEffect(() => {
     return () => clearInterval(interval);
 }, []);
 
+
+useEffect(() => {
+  console.log("🔥 Kullanıcı Takımı:", userTeam);
+  console.log("🔥 Rakip Takımı:", opponentTeam);
+}, [userTeam, opponentTeam]);
+
 const takePhotoAndUpload = async (folder) => {
     if (!isPlayerAuthorized) {
         Alert.alert("Unauthorized", "You can only upload photos for your own match.");
@@ -832,42 +855,29 @@ An intense match that could have gone either way!`;
 
     {/* 📌 Saha Görseli ve Oyuncular */}
     <View style={styles.lineupContainer}>
-      <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
+                    <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
+                    {userTeam.length > 0 ? (
+    userTeam.map((player, index) => (
+        <View key={index} style={[styles.playerPosition, { 
+            top: `${formations[formation][index]?.top}%`, 
+            left: `${formations[formation][index]?.left}%` 
+        }]}> 
+            {/* 🏆 Oyuncu Kartı ve Overall Puanı */}
+            <View style={styles.playerCard}>
+                <Image source={{ uri: player?.images?.PlayerCard }} style={styles.playerImage} />
+                <Text style={styles.overallText}>{player?.player_info?.Overall || "??"}</Text>
+            </View>
+            <Text style={styles.playerText}>{player?.player_info?.Name || "Unknown"}</Text>
+        </View>
+    ))
+) : (
+    <Text style={styles.noPlayerText}>THERE IS NO PLAYER ON TEAM</Text>
+)}
 
-      {/* 📌 Eğer takım boşsa uyarı mesajını göster */}
-      {(!opponentTeam || Object.keys(opponentTeam).length === 0) ? (
-        <Text style={styles.noPlayerText}>THERE IS NO PLAYER ON TEAM</Text>
-      ) : (
-        formations[opponentFormation]?.map((pos, index) => {
-          const playerKey = `Player${index + 1}`;
-          const playerData = opponentTeam[playerKey];
 
-          if (!playerData) return null;
 
-          return (
-            <Animated.View
-              key={index}
-              style={[
-                styles.playerPosition,
-                {
-                  top: `${pos.top}%`,
-                  left: `${pos.left}%`,
-                  borderColor: teamColors[selectedTeam],
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
-            >
-              <Image
-                source={{ uri: playerData.playerImage }}
-                style={styles.playerImage}
-              />
-              <Text style={styles.playerText}>{playerData.playerName}</Text>
-            </Animated.View>
-          );
-        })
-      )}
-    </View>
+                </View>
+    
   </View>
 )}
 
@@ -1007,7 +1017,25 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 5,
   },
-  
+  playerCard: {
+    position: "relative", // 🔥 İçindeki öğeleri konumlandırmak için
+    justifyContent: "center",
+    alignItems: "center",
+},
+
+overallText: {
+    position: "absolute",
+    top: 5, // 📍 Overall değeri kartın üstünde olacak
+    right: 5, // 📍 Sağ üst köşeye konumlandırıldı
+    backgroundColor: "rgba(0, 0, 0, 0.7)", // 🎭 Hafif saydam arkaplan
+    color: "#FFCC00", // 🏆 Altın sarısı renk
+    fontWeight: "bold",
+    fontSize: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
+},
+
   statsContainer: {
     padding: 15,
     backgroundColor: '#111111',
@@ -1086,39 +1114,39 @@ const styles = StyleSheet.create({
     },
     playerPosition: {
       position: "absolute",
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      backgroundColor: "#000", // 🔹 Daire rengi siyah yapıldı
+      width: 50, // 🔥 Daha uzun dikdörtgen
+      height: 70, // 🔥 Uzunluk artırıldı
+      borderRadius: 10, // 🔥 Kenarları biraz yuvarlak
+      backgroundColor: "#000", 
       justifyContent: "center",
       alignItems: "center",
       borderWidth: 2,
-      borderColor: "#ffcc00", // 🔹 Çerçeve rengi sarı
-      transform: [{ translateX: -22 }, { translateY: -22 }],
-      shadowColor: "#ffcc00", // 🔹 Shadow frame ile aynı renk
+      borderColor: "#ffcc00", 
+      transform: [{ translateX: -40 }, { translateY: -30 }], // 🔥 Ortalamak için güncellendi
+      shadowColor: "#ffcc00", 
       shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.7,
       shadowRadius: 5,
-      elevation: 6, // 🔹 Android için shadow efekti
+      elevation: 6,
   },
+  
   playerImage: {
-      width: 55,
-      height: 55,
-      borderRadius: 22.5,
+      width: 50, // 🔥 Fotoğraf uzun dikdörtgene uyacak şekilde ayarlandı
+      height: 50,
+      borderRadius: 10, // 🔥 Kenarlar yuvarlatıldı ama tam yuvarlak değil
   },
+  
   playerText: {
-      color: "#FFF", // 🔹 Oyuncu isimleri beyaz yapıldı
+      color: "#FFF",
       fontWeight: "bold",
       fontSize: 10,
       textAlign: "center",
-      marginTop: 5,
-      textShadowColor: "#ffcc00", // 🔹 Yazının arkasına gölge eklendi
+      marginTop: 2, // 🔥 Daha iyi hizalama
+      textShadowColor: "#ffcc00", 
       textShadowOffset: { width: 1, height: 1 },
       textShadowRadius: 4,
   },
-    
-   
-    
+  
     container: { flex: 1, backgroundColor: '#000', padding: 15 },
     photoSection: { marginBottom: 20, padding: 10, borderRadius: 10, backgroundColor: "#121212" },
     uploadedPhoto: { width: 100, height: 100, margin: 5, borderRadius: 10, borderWidth: 1, borderColor: "#ffcc00" },
