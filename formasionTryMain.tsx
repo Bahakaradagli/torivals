@@ -16,26 +16,89 @@ import { getDatabase, ref, set, get } from "firebase/database";
 
 const { width, height } = Dimensions.get("window");
 
-// Formation definitions with positions
 const formations = {
-  "4-4-2": {
+  // ---------- 3 ATB (3 Defanslı Formasyonlar) ----------
+  "3-1-4-2": {
     positions: {
       goalkeeper: [{ x: 0.5, y: 0.95 }],
       defense: [
-        { x: 0.15, y: 0.75 },
-        { x: 0.35, y: 0.75 },
-        { x: 0.65, y: 0.75 },
-        { x: 0.85, y: 0.75 }
+        { x: 0.3, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.7, y: 0.75 }
       ],
+      defensiveMidfield: [{ x: 0.5, y: 0.65 }],
       midfield: [
-        { x: 0.1, y: 0.55 },
-        { x: 0.3, y: 0.55 },
-        { x: 0.7, y: 0.55 },
-        { x: 0.9, y: 0.55 }
+        { x: 0.15, y: 0.55 },
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 },
+        { x: 0.85, y: 0.55 }
       ],
       forwards: [
         { x: 0.35, y: 0.3 },
         { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "3-4-1-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.3, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.7, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.15, y: 0.65 },
+        { x: 0.35, y: 0.65 },
+        { x: 0.65, y: 0.65 },
+        { x: 0.85, y: 0.65 }
+      ],
+      attackingMidfield: [{ x: 0.5, y: 0.55 }],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "3-4-2-1": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.3, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.7, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.15, y: 0.65 },
+        { x: 0.35, y: 0.65 },
+        { x: 0.65, y: 0.65 },
+        { x: 0.85, y: 0.65 }
+      ],
+      attackingMidfield: [
+        { x: 0.4, y: 0.55 },
+        { x: 0.6, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+  "3-4-3": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.3, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.7, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.15, y: 0.55 },
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 },
+        { x: 0.85, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.2, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.8, y: 0.3 }
       ]
     }
   },
@@ -60,6 +123,239 @@ const formations = {
       ]
     }
   },
+
+  // ---------- 4 ATB (4 Defanslı Formasyonlar) ----------
+  "4-1-2-1-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [{ x: 0.5, y: 0.65 }],
+      centralMidfield: [
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 }
+      ],
+      attackingMidfield: [{ x: 0.5, y: 0.45 }],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-1-2-1-2 (2)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [{ x: 0.5, y: 0.65 }],
+      centralMidfield: [
+        { x: 0.3, y: 0.55 },
+        { x: 0.7, y: 0.55 }
+      ],
+      attackingMidfield: [{ x: 0.5, y: 0.45 }],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-1-3-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [{ x: 0.5, y: 0.65 }],
+      midfield: [
+        { x: 0.3, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.7, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-1-4-1": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [{ x: 0.5, y: 0.65 }],
+      midfield: [
+        { x: 0.15, y: 0.55 },
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 },
+        { x: 0.85, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+  "4-2-1-3": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [
+        { x: 0.4, y: 0.65 },
+        { x: 0.6, y: 0.65 }
+      ],
+      midfield: [{ x: 0.5, y: 0.55 }],
+      forwards: [
+        { x: 0.2, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.8, y: 0.3 }
+      ]
+    }
+  },
+  "4-2-2-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [
+        { x: 0.4, y: 0.65 },
+        { x: 0.6, y: 0.65 }
+      ],
+      midfield: [
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-2-3-1": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [
+        { x: 0.4, y: 0.65 },
+        { x: 0.6, y: 0.65 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.7, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+  "4-2-3-1 (2)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      defensiveMidfield: [
+        { x: 0.4, y: 0.65 },
+        { x: 0.6, y: 0.65 }
+      ],
+      midfield: [
+        { x: 0.2, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.8, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+  "4-2-4": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.15, y: 0.3 },
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 },
+        { x: 0.85, y: 0.3 }
+      ]
+    }
+  },
+  "4-3-1-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.65 },
+        { x: 0.5, y: 0.65 },
+        { x: 0.7, y: 0.65 }
+      ],
+      attackingMidfield: [{ x: 0.5, y: 0.55 }],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-3-2-1": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.65 },
+        { x: 0.5, y: 0.65 },
+        { x: 0.7, y: 0.65 }
+      ],
+      attackingMidfield: [
+        { x: 0.4, y: 0.55 },
+        { x: 0.6, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
   "4-3-3": {
     positions: {
       goalkeeper: [{ x: 0.5, y: 0.95 }],
@@ -78,6 +374,212 @@ const formations = {
         { x: 0.15, y: 0.3 },
         { x: 0.5, y: 0.3 },
         { x: 0.85, y: 0.3 }
+      ]
+    }
+  },
+  "4-3-3 (2)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.2, y: 0.75 },
+        { x: 0.4, y: 0.75 },
+        { x: 0.6, y: 0.75 },
+        { x: 0.8, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.6 },
+        { x: 0.5, y: 0.6 },
+        { x: 0.7, y: 0.6 }
+      ],
+      forwards: [
+        { x: 0.2, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.8, y: 0.3 }
+      ]
+    }
+  },
+  "4-3-3 (3)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.2, y: 0.75 },
+        { x: 0.4, y: 0.75 },
+        { x: 0.6, y: 0.75 },
+        { x: 0.8, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.25, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.75, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.15, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.85, y: 0.3 }
+      ]
+    }
+  },
+  "4-3-3 (4)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.2, y: 0.75 },
+        { x: 0.4, y: 0.75 },
+        { x: 0.6, y: 0.75 },
+        { x: 0.8, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.3, y: 0.6 },
+        { x: 0.5, y: 0.6 },
+        { x: 0.7, y: 0.6 }
+      ],
+      forwards: [
+        { x: 0.15, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.85, y: 0.3 }
+      ]
+    }
+  },
+  "4-4-1-1 (2)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.15, y: 0.65 },
+        { x: 0.35, y: 0.65 },
+        { x: 0.65, y: 0.65 },
+        { x: 0.85, y: 0.65 }
+      ],
+      attackingMidfield: [{ x: 0.5, y: 0.55 }],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+  "4-4-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.1, y: 0.55 },
+        { x: 0.3, y: 0.55 },
+        { x: 0.7, y: 0.55 },
+        { x: 0.9, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-4-2 (2)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.2, y: 0.55 },
+        { x: 0.4, y: 0.55 },
+        { x: 0.6, y: 0.55 },
+        { x: 0.8, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "4-5-1": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.1, y: 0.55 },
+        { x: 0.3, y: 0.55 },
+        { x: 0.5, y: 0.55 },
+        { x: 0.7, y: 0.55 },
+        { x: 0.9, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+  "4-5-1 (2)": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.15, y: 0.75 },
+        { x: 0.35, y: 0.75 },
+        { x: 0.65, y: 0.75 },
+        { x: 0.85, y: 0.75 }
+      ],
+      midfield: [
+        { x: 0.12, y: 0.55 },
+        { x: 0.32, y: 0.55 },
+        { x: 0.52, y: 0.55 },
+        { x: 0.72, y: 0.55 },
+        { x: 0.92, y: 0.55 }
+      ],
+      forwards: [{ x: 0.5, y: 0.3 }]
+    }
+  },
+
+  // ---------- 5 ATB (5 Defanslı Formasyonlar) ----------
+  "5-2-1-2": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.1, y: 0.65 },
+        { x: 0.25, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.75, y: 0.75 },
+        { x: 0.9, y: 0.65 }
+      ],
+      defensiveMidfield: [
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 }
+      ],
+      midfield: [{ x: 0.5, y: 0.45 }],
+      forwards: [
+        { x: 0.35, y: 0.3 },
+        { x: 0.65, y: 0.3 }
+      ]
+    }
+  },
+  "5-2-3": {
+    positions: {
+      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      defense: [
+        { x: 0.1, y: 0.65 },
+        { x: 0.25, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.75, y: 0.75 },
+        { x: 0.9, y: 0.65 }
+      ],
+      midfield: [
+        { x: 0.35, y: 0.55 },
+        { x: 0.65, y: 0.55 }
+      ],
+      forwards: [
+        { x: 0.2, y: 0.3 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.8, y: 0.3 }
       ]
     }
   },
@@ -102,34 +604,34 @@ const formations = {
       ]
     }
   },
-  "4-2-4": {
+  "5-4-1": {
     positions: {
       goalkeeper: [{ x: 0.5, y: 0.95 }],
       defense: [
-        { x: 0.2, y: 0.75 },
-        { x: 0.4, y: 0.75 },
-        { x: 0.6, y: 0.75 },
-        { x: 0.8, y: 0.75 }
+        { x: 0.1, y: 0.65 },
+        { x: 0.25, y: 0.75 },
+        { x: 0.5, y: 0.75 },
+        { x: 0.75, y: 0.75 },
+        { x: 0.9, y: 0.65 }
       ],
       midfield: [
-        { x: 0.3, y: 0.55 },
-        { x: 0.7, y: 0.55 }
+        { x: 0.2, y: 0.55 },
+        { x: 0.4, y: 0.55 },
+        { x: 0.6, y: 0.55 },
+        { x: 0.8, y: 0.55 }
       ],
-      forwards: [
-        { x: 0.1, y: 0.3 },
-        { x: 0.3, y: 0.3 },
-        { x: 0.7, y: 0.3 },
-        { x: 0.9, y: 0.3 }
-      ]
+      forwards: [{ x: 0.5, y: 0.3 }]
     }
   }
 };
 
-// Category mapping for player positions
 const categoryMap = {
   goalkeeper: "Goalkeeper",
   defense: "Defender",
   midfield: "Midfielder",
+  defensiveMidfield: "Midfielder",
+  centralMidfield: "Midfielder",
+  attackingMidfield: "Midfielder",
   forwards: "Striker"
 };
 
@@ -215,9 +717,24 @@ const FootballField = () => {
     }
   }, [user]);
 
-  // Save team data to Firebase
+  // Save team data to Firebase with garbage removal
   const saveTeamToFirebase = async (squadData: any) => {
     if (!user) return;
+
+    // Yeni formasyona göre, her kategorideki oyuncu dizisini formation tanımına uygun şekilde kırpıyoruz.
+    const formationPositions = formations[selectedFormation].positions;
+    const newSquad = {
+      goalkeeper: squadData.goalkeeper,
+      defense: (squadData.defense || []).slice(0, formationPositions.defense ? formationPositions.defense.length : 0),
+      midfield: (squadData.midfield || []).slice(
+        0,
+        (formationPositions.defensiveMidfield ? formationPositions.defensiveMidfield.length : 0) +
+          (formationPositions.centralMidfield ? formationPositions.centralMidfield.length : 0) +
+          (formationPositions.attackingMidfield ? formationPositions.attackingMidfield.length : 0) +
+          (formationPositions.midfield ? formationPositions.midfield.length : 0)
+      ),
+      forwards: (squadData.forwards || []).slice(0, formationPositions.forwards ? formationPositions.forwards.length : 0)
+    };
 
     const teamRef = isProclubsMode
       ? ref(db, `users/${user.uid}/MyTeam/ProClub`)
@@ -225,7 +742,7 @@ const FootballField = () => {
 
     const teamData = {
       formation: selectedFormation,
-      squad: squadData,
+      squad: newSquad,
     };
 
     try {
@@ -291,7 +808,7 @@ const FootballField = () => {
     setFieldDimensions({ width, height });
   };
 
-  // Render players on the field
+  // Render players on the field with correct handling for midfield subcategories
   const renderPlayers = () => {
     if (!fieldDimensions.width || !fieldDimensions.height) return null;
 
@@ -300,19 +817,29 @@ const FootballField = () => {
     const halfWidth = playerCardWidth / 2;
     const halfHeight = playerCardHeight / 2;
 
-    const formation = formations[selectedFormation].positions;
+    let midfieldCounter = 0;
+    const midfieldKeys = ["defensiveMidfield", "centralMidfield", "attackingMidfield", "midfield"];
 
-    const generatePositions = (positions: any, category: string) => {
+    const renderCategoryPositions = (categoryKey: string, positions: any[]) => {
       return positions.map((pos: any, index: number) => {
-        const playerData =
-          category === "goalkeeper"
-            ? activeSquad.goalkeeper
-            : activeSquad[category][index];
-
+        let squadCategory = categoryKey;
+        let playerData;
+        let playerIndex = index;
+        if (midfieldKeys.includes(categoryKey)) {
+          squadCategory = "midfield";
+          playerData = activeSquad.midfield[midfieldCounter];
+          playerIndex = midfieldCounter;
+          midfieldCounter++;
+        } else {
+          playerData =
+            categoryKey === "goalkeeper"
+              ? activeSquad.goalkeeper
+              : activeSquad[categoryKey][index];
+        }
         return (
           <TouchableOpacity
-            key={`${category}-${index}`}
-            onPress={() => handlePlayerPress(category, index)}
+            key={`${categoryKey}-${index}`}
+            onPress={() => handlePlayerPress(squadCategory, playerIndex)}
             style={[
               styles.player,
               {
@@ -329,19 +856,19 @@ const FootballField = () => {
               )
             ) : (
               <Text style={styles.playerNumber}>
-                {playerData?.player_info?.Overall || index + 1}
+                {playerData?.player_info?.Overall || playerIndex + 1}
               </Text>
             )}
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
                 {isProclubsMode
-                  ? playerData?.name || `Player ${index + 1}`
-                  : playerData?.player_info?.Name || `Player ${index + 1}`}
+                  ? playerData?.name || `Player ${playerIndex + 1}`
+                  : playerData?.player_info?.Name || `Player ${playerIndex + 1}`}
               </Text>
               <Text style={styles.infoText}>
                 {isProclubsMode
-                  ? playerData?.position || categoryMap[category]
-                  : playerData?.player_info?.Position || categoryMap[category]}
+                  ? playerData?.position || (categoryMap[categoryKey] || "Midfielder")
+                  : playerData?.player_info?.Position || (categoryMap[categoryKey] || "Midfielder")}
               </Text>
             </View>
           </TouchableOpacity>
@@ -349,14 +876,23 @@ const FootballField = () => {
       });
     };
 
-    return (
-      <>
-        {generatePositions(formation.goalkeeper, "goalkeeper")}
-        {generatePositions(formation.defense, "defense")}
-        {generatePositions(formation.midfield, "midfield")}
-        {generatePositions(formation.forwards, "forwards")}
-      </>
-    );
+    const formationPositions = formations[selectedFormation].positions;
+    const renderedElements = [];
+    if (formationPositions.goalkeeper) {
+      renderedElements.push(renderCategoryPositions("goalkeeper", formationPositions.goalkeeper));
+    }
+    if (formationPositions.defense) {
+      renderedElements.push(renderCategoryPositions("defense", formationPositions.defense));
+    }
+    midfieldKeys.forEach((key) => {
+      if (formationPositions[key]) {
+        renderedElements.push(renderCategoryPositions(key, formationPositions[key]));
+      }
+    });
+    if (formationPositions.forwards) {
+      renderedElements.push(renderCategoryPositions("forwards", formationPositions.forwards));
+    }
+    return renderedElements;
   };
 
   return (
@@ -691,7 +1227,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center"
-  },
+  }
 });
 
 export default FootballField;
