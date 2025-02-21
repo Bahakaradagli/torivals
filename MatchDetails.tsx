@@ -173,31 +173,31 @@ useEffect(() => {
     if (user2Id) fetchPlayerStats(user2Id, setPlayer2Stats);
 }, [user1Id, user2Id]);
 
+
 const fetchUserTeam = async (userId, setTeam, setFormation) => {
   try {
-    const db = getDatabase();
-    const teamRef = dbRef(db, `users/${userId}/MyTeam`);
-    const snapshot = await get(teamRef);
+      const db = getDatabase();
+      const teamRef = dbRef(db, `users/${userId}/MyTeam`);
+      const snapshot = await get(teamRef);
 
-    if (snapshot.exists()) {
-      const teamData = snapshot.val();
+      if (snapshot.exists()) {
+          const teamData = snapshot.val();
+          
+          const fullSquad = [
+              ...(teamData.squad?.defense || []),
+              ...(teamData.squad?.midfield || []),
+              ...(teamData.squad?.forwards || []),
+              ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : [])
+          ];
 
-      // 📌 **Oyuncuları Doğru Formasyon Sırasına Göre Diz**
-      const fullSquad = [
-        ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : []), // **1 Kaleci**
-        ...(teamData.squad?.defense || []), // **Defans Oyuncuları**
-        ...(teamData.squad?.midfield || []), // **Orta Saha Oyuncuları**
-        ...(teamData.squad?.forwards || []) // **Forvetler**
-      ];
-
-      setTeam(fullSquad);  // 📌 **Doğru sırayla takımı güncelle**
-      setFormation(teamData.formation || "4-4-2");
-    } else {
-      setTeam([]);
-    }
+          setTeam(fullSquad); 
+          setFormation(teamData.formation || "4-4-2");
+      } else {
+          setTeam([]);
+      }
   } catch (error) {
-    console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
-    setTeam([]);
+      console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
+      setTeam([]);
   }
 };
 
@@ -212,13 +212,13 @@ const fetchOpponentTeam = async (opponentId, setOpponentTeam, setOpponentFormati
       if (snapshot.exists()) {
           const teamData = snapshot.val();
           
+          // 🔥 Doğru şekilde set et
           const fullSquad = [
-            ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : []), // ✅ 1. Kale
-            ...(teamData.squad?.defense || []), // ✅ 2. Defans
-            ...(teamData.squad?.midfield || []), // ✅ 3. Orta Saha
-            ...(teamData.squad?.forwards || []) // ✅ 4. Forvetler
-        ];
-        
+              ...(teamData.squad?.defense || []),
+              ...(teamData.squad?.midfield || []),
+              ...(teamData.squad?.forwards || []),
+              ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : [])
+          ];
 
           console.log("✅ Rakip Takım: ", fullSquad);
           setOpponentTeam(fullSquad); // 🔥 Rakip takımı buraya set ediyoruz!
@@ -1158,15 +1158,6 @@ const takePhotoAndUpload = async (folder) => {
         Alert.alert('Error', error.message || 'Failed to upload the photo.');
     }
 };
-
-const getPlayerPositions = (formation, team) => {
-  const formationPositions = formations[formation] || [];
-  return formationPositions.map((pos, index) => ({
-    ...pos, 
-    player: team[index] || null, // Takımdaki oyuncuları sırayla yerleştiriyoruz
-  }));
-};
-
 const getMatchSummary = () => {
   const goalDifference = Math.abs(team1Score - team2Score);
   const totalTournamentsUser1 = player1Tournaments;
@@ -1341,27 +1332,22 @@ An intense match that could have gone either way!`;
     <View style={styles.lineupContainer}>
                     <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
                     {userTeam.length > 0 ? (
- {getPlayerPositions(formation, userTeam).map((pos, index) => (
-  <View key={index} style={[
-      styles.playerPosition, 
-      {
-          top: `${pos.top}%`, 
-          left: `${pos.left}%`
-      }
-  ]}>
-    {pos.player ? (
-      <View style={styles.playerCard}>
-        <Image source={{ uri: pos.player.images?.PlayerCard }} style={styles.playerImage} />
-        <Text style={styles.overallText}>{pos.player.player_info?.Overall || "??"}</Text>
-      </View>
-    ) : (
-      <Text style={styles.noPlayerText}>?</Text>
-    )}
-    <Text style={styles.playerText}>{pos.player?.player_info?.Name || "Unknown"}</Text>
-  </View>
-))}
-
-
+    userTeam.map((player, index) => (
+        <View key={index} style={[styles.playerPosition, { 
+            top: `${formations[formation][index]?.top}%`, 
+            left: `${formations[formation][index]?.left}%` 
+        }]}> 
+            {/* 🏆 Oyuncu Kartı ve Overall Puanı */}
+            <View style={styles.playerCard}>
+                <Image source={{ uri: player?.images?.PlayerCard }} style={styles.playerImage} />
+                <Text style={styles.overallText}>{player?.player_info?.Overall || "??"}</Text>
+            </View>
+            <Text style={styles.playerText}>{player?.player_info?.Name || "Unknown"}</Text>
+        </View>
+    ))
+) : (
+    <Text style={styles.noPlayerText}>THERE IS NO PLAYER ON TEAM</Text>
+)}
 
 
 
