@@ -1502,23 +1502,84 @@ const testLeagueTableFetch = () => {
         ))}
       </View>
 
-      {selectedTab === 'General' && (
-        <ScrollView style={styles.generalContainer} showsVerticalScrollIndicator={false}>
-          <Animatable.View animation="fadeInUp" delay={200} style={styles.detailsContainer}>
-            <Image source={require('./assets/fixture_background.png')} style={styles.bannerImage} />
-            <View style={styles.infoCard}>
-              <Text style={styles.detailText}><Ionicons name="calendar" size={18} color="#f39c12" /> <Text style={styles.detailLabel}>Start Date:</Text> {formatDate(tournament.startDate)}</Text>
-              <Text style={styles.detailText}><Ionicons name="cash" size={18} color="#f39c12" /> <Text style={styles.detailLabel}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}</Text>
-              <Text style={styles.detailLabel}>Description:</Text>
-              <Text style={styles.generalDescription}>{tournament.tournamentDescription || 'There is no Description.'}</Text>
-              <Text style={styles.detailLabel}>Rules:</Text>
-              {Object.entries(rules).map(([key, rule]) => (
-                <Text key={key} style={styles.rulesText}>{key}. {rule}</Text>
+
+  {selectedTab === 'General' && (
+  <ScrollView
+    style={styles.generalContainer}
+    showsVerticalScrollIndicator={false}
+    bounces={false} // Scroll esnemesini kapatır
+    overScrollMode="never" // Android'de esnemeyi kapatır
+  >
+    <ScrollView style={styles.generalContainer}>
+      <Animatable.View animation="zoomIn" delay={400} style={styles.detailsContainer}>
+      <View style={styles.rulesContainer}>
+        <Text style={styles.detailText}>
+          <Text style={styles.rulesTitle}>Start Date:</Text> {tournament.startDate}
+        </Text>
+        <Text style={styles.detailText}>
+          <Text style={styles.rulesTitle}>Participation Fee:</Text> {tournament.participationFee ? `${tournament.participationFee}₺` : 'Ücretsiz'}
+        </Text>
+
+
+
+        </View>
+
+
+
+      
+
+        {/* 📌 **Turnuva Kuralları & Takım Kuralları Bölümü** */}
+        <View style={styles.rulesContainer}>
+          {/* Turnuva Kuralları */}
+          {tournament.tournamentRules && tournament.tournamentRules.length > 0 && (
+            <>
+              <Text style={styles.rulesTitle}>Tournament Rules:</Text>
+              {tournament.tournamentRules.map((rule, index) => (
+                <Text key={index} style={styles.rulesText}>• {rule}</Text>
               ))}
+            </>
+          )}
+     </View>
+     
+
+        {/* 🏆 Ödüller & Podyum */}
+        <View style={styles.detailsContainer}>
+          <View style={styles.podiumContainer}>
+            <View style={[styles.podium, styles.second]}>
+              <Text style={styles.podiumText}>2</Text>
+              <Text style={styles.gpText}>500 GP</Text>
             </View>
-          </Animatable.View>
-        </ScrollView>
-      )}
+            <View style={[styles.podium, styles.first]}>
+              <Text style={styles.podiumText}>1</Text>
+              <Text style={styles.gpText}>1000 GP</Text>
+            </View>
+            <View style={[styles.podium, styles.third]}>
+              <Text style={styles.podiumText}>3</Text>
+              <Text style={styles.gpText}>250 GP</Text>
+            </View>
+          </View>
+
+          <View style={styles.prizeContainer}>
+            <View style={styles.prizeBackground}>
+              <Text style={styles.prizeText}>
+                {tournament.participantCount &&
+                tournament.participationFee &&
+                tournament.prizePercentage
+                  ? `${(
+                      (tournament.participantCount *
+                        tournament.participationFee *
+                        tournament.prizePercentage) / 100
+                    )} TL`
+                  : '480 TL'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Animatable.View>
+    </ScrollView>
+  </ScrollView>
+)}
+
 
 {selectedTab === 'Fixtures' && (
   <ScrollView style={styles.bracketContainer}>
@@ -1859,7 +1920,26 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginRight: 10,
       },
-      
+      rulesContainer: {
+        backgroundColor: '#000', // Koyu tema
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 15,
+        shadowColor: '#ffcc00',
+        shadowOpacity: 0.3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 5,
+        elevation: 5,
+      },
+      rulesTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#ffcc00',
+        marginTop: 15,
+        marginBottom: 5,
+        textAlign: 'left',
+      },
+      generalContainer: { flex: 1, backgroundColor: '#000', borderRadius: 10, padding: 15, marginTop: 10 },
       weekButton: {
         paddingVertical: 8,
         paddingHorizontal: 15,

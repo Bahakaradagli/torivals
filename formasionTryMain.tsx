@@ -275,22 +275,22 @@ const formations = {
   },
   "4-1-3-2": {
     positions: {
-      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      goalkeeper: [{ x: 0.55, y: 0.95 }],
       defense: [
-        { x: 0.15, y: 0.75 },
-        { x: 0.35, y: 0.75 },
-        { x: 0.65, y: 0.75 },
-        { x: 0.85, y: 0.75 }
+        { x: 0.25, y: 0.75 },
+        { x: 0.4, y: 0.75 },
+        { x: 0.7, y: 0.75 },
+        { x: 0.95, y: 0.75 }
       ],
-      defensiveMidfield: [{ x: 0.5, y: 0.65 }],
+      defensiveMidfield: [{ x: 0.55, y: 0.65 }],
       midfield: [
-        { x: 0.3, y: 0.55 },
-        { x: 0.5, y: 0.55 },
-        { x: 0.7, y: 0.55 }
+        { x: 0.35, y: 0.55 },
+        { x: 0.55, y: 0.45 },
+        { x: 0.75, y: 0.55 }
       ],
       forwards: [
-        { x: 0.35, y: 0.3 },
-        { x: 0.65, y: 0.3 }
+        { x: 0.4, y: 0.3 },
+        { x: 0.7, y: 0.3 }
       ]
     }
   },
@@ -567,21 +567,21 @@ const formations = {
   },
   "4-4-2": {
     positions: {
-      goalkeeper: [{ x: 0.5, y: 0.95 }],
+      goalkeeper: [{ x: 0.55, y: 0.95 }],
       defense: [
-        { x: 0.15, y: 0.75 },
-        { x: 0.35, y: 0.75 },
+        { x: 0.25, y: 0.75 },
+        { x: 0.4, y: 0.75 },
         { x: 0.65, y: 0.75 },
-        { x: 0.85, y: 0.75 }
+        { x: 0.95, y: 0.75 }
       ],
       midfield: [
-        { x: 0.1, y: 0.55 },
-        { x: 0.3, y: 0.55 },
-        { x: 0.7, y: 0.55 },
-        { x: 0.9, y: 0.55 }
+        { x: 0.25, y: 0.45 },
+        { x: 0.4, y: 0.55 },
+        { x: 0.65, y: 0.55 },
+        { x: 1, y: 0.45 }
       ],
       forwards: [
-        { x: 0.35, y: 0.3 },
+        { x: 0.4, y: 0.3 },
         { x: 0.65, y: 0.3 }
       ]
     }
@@ -1078,17 +1078,20 @@ const FootballField = () => {
           >
             {playerData ? (
               <View style={[styles.cardContainer, { backgroundColor: cardThemeColor }]}>
-                {playerData.images && (
-                  <Image
-                    source={{ uri: playerData.images["Player Card"] }}
-                    style={styles.cardImage}
-                    resizeMode="cover"
-                  />
-                )}
+
                 <View style={styles.cardInfo}>
-                  <Text style={styles.playerNameText}>{displayName}</Text>
-                  <Text style={styles.cardThemaText}>{playerData.card_thema}</Text>
-                  <Text style={styles.overallText}>OVR: {displayOverall}</Text>
+                <Text
+  style={[
+    styles.playerNameText,
+    { fontSize: displayName.length > 12 ? 10 : 12 } // Uzunluk 12’den fazlaysa font küçültülüyor
+  ]}
+  numberOfLines={1}
+  ellipsizeMode="tail"
+>
+  {displayName}
+</Text>
+
+                  <Text style={styles.playerNameText}>{displayOverall}</Text>
                 </View>
               </View>
             ) : (
@@ -1392,7 +1395,7 @@ const FootballField = () => {
     <View style={styles.container}>
       <View style={styles.fieldContainer} onLayout={onFieldLayout}>
         <ImageBackground
-          source={require("./assets/takımSecimiSahasi.png")}
+          source={require("./assets/potch.png")}
           style={styles.fieldImage}
           resizeMode="stretch"
         >
@@ -1553,7 +1556,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 5,
     borderRadius: 6,
-    width: "100%",
+    width: "60%",
     height: "100%",
   },
   cardImage: {
@@ -1567,10 +1570,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   playerNameText: {
-    fontSize: 12,
     fontWeight: "bold",
     color: "#fff",
+    maxWidth: 60, // Metnin max genişliği belirleniyor
+    textAlign: "center",
   },
+  
   cardThemaText: {
     fontSize: 10,
     color: "#fff",

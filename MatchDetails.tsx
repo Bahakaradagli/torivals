@@ -167,6 +167,13 @@ useEffect(() => {
     }
 }, [selectedTeam]);
 
+useEffect(() => {
+  if (selectedTeam === user1) {
+      fetchUserTeam(user1Id, setUserTeam, setFormation);
+  } else {
+      fetchUserTeam(user2Id, setUserTeam, setFormation);
+  }
+}, [selectedTeam]);
 
 useEffect(() => {
     if (user1Id) fetchPlayerStats(user1Id, setPlayer1Stats);
@@ -407,21 +414,21 @@ useEffect(() => {
   
     // 4-1-3-2
     "4-1-3-2": [
-      { position: "GK",  top: 80, left: 50 },
+      { position: "GK",  top: 80, left: 55 },
       // 4 Defans
-      { position: "RB",  top: 65, left: 80 },
-      { position: "RCB", top: 70, left: 60 },
-      { position: "LCB", top: 70, left: 40 },
-      { position: "LB",  top: 65, left: 20 },
+      { position: "RB",  top: 55, left: 100 },
+      { position: "RCB", top: 65, left: 70 },
+      { position: "LCB", top: 65, left: 40 },
+      { position: "LB",  top: 55, left: 10 },
       // 1 DM
-      { position: "CDM", top: 57, left: 50 },
+      { position: "CDM", top: 50, left: 55 },
       // 3 Orta Saha (daha ofansif)
-      { position: "RCM", top: 47, left: 60 },
-      { position: "CM",  top: 47, left: 50 },
-      { position: "LCM", top: 47, left: 40 },
+      { position: "RCM", top: 37, left: 87 },
+      { position: "CM",  top: 32, left: 55 },
+      { position: "LCM", top: 37, left: 27 },
       // 2 Forvet
-      { position: "ST",  top: 20, left: 43 },
-      { position: "ST",  top: 20, left: 57 },
+      { position: "ST",  top: 15, left: 43 },
+      { position: "ST",  top: 15, left: 67 },
     ],
   
     // 4-1-4-1
@@ -668,20 +675,20 @@ useEffect(() => {
   
     // 4-4-2
     "4-4-2": [
-      { position: "GK",  top: 80, left: 43 }, // Örnek koddaki gibi korunabilir
+      { position: "GK",  top: 80, left: 53 }, // Örnek koddaki gibi korunabilir
       // 4 Defans
-      { position: "RB",  top: 65, left: 83 },
-      { position: "RCB", top: 70, left: 58 },
-      { position: "LCB", top: 70, left: 28 },
-      { position: "LB",  top: 65, left: 3 },
+      { position: "RB",  top: 60, left: 103 },
+      { position: "RCB", top: 62, left: 68 },
+      { position: "LCB", top: 62, left: 38 },
+      { position: "LB",  top: 60, left: 5 },
       // 4 Orta Saha
-      { position: "RM",  top: 40, left: 78 },
-      { position: "RCM", top: 50, left: 58 },
-      { position: "LCM", top: 50, left: 28 },
+      { position: "RM",  top: 40, left: 98 },
+      { position: "RCM", top: 40, left: 68 },
+      { position: "LCM", top: 40, left: 38 },
       { position: "LM",  top: 40, left: 8 },
       // 2 Forvet
-      { position: "ST",  top: 20, left: 55 },
-      { position: "ST",  top: 20, left: 30 },
+      { position: "ST",  top: 20, left: 65 },
+      { position: "ST",  top: 20, left: 40 },
     ],
   
     // 4-4-2 (2)

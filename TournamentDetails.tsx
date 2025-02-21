@@ -39,6 +39,7 @@ const TournamentDetails = ({ route }) => {
     { round: "1. Tur", matches: [] }, 
     { round: "2. Tur", matches: [] }, // 2. tur için alan oluşturduk
   ]);
+  const [teamRules, setTeamRules] = useState([]);
   const navigation = useNavigation();
   const [tournamentWinner, setTournamentWinner] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -52,7 +53,104 @@ const TournamentDetails = ({ route }) => {
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'December'
   ];
-
+  const cardThemeColors: { [key: string]: string } = {
+    "Special Item": "#FFFFFF",
+    "Grassroot Greats Evolution": "#008000",
+    "Grassroot Greats Hero": "#006400",
+    "Grassroot Greats Icon": "#32CD32",
+    "Grassroot Greats": "#228B22",
+    "FC Pro Open Champion ICON": "#8B0000",
+    "Future Stars Academy Icon": "#FFD700",
+    "Future Stars Evolution": "#FF69B4",
+    "Future Stars Icon": "#FF1493",
+    "Future Stars": "#DB7093",
+    "UEFA Conference League RTTF": "#0000FF",
+    "UEFA Europa League RTTF": "#FF4500",
+    "UEFA Women's Champions League RTTF": "#800080",
+    "TOTY Honourable Mentions": "#1E90FF",
+    "TOTY Icon": "#FFD700",
+    "TOTY Eras 2002 ICON": "#DAA520",
+    "TOTY Evolution": "#4682B4",
+    "NumeroFUT": "#FFA500",
+    "Winter Wildcards Evolution": "#A52A2A",
+    "Winter Wildcards Icon": "#8B4513",
+    "Winter Wildcards Hero": "#D2691E",
+    "Ultimate Cover Star": "#FF4500",
+    "Ultimate Succession Icon": "#FFD700",
+    "Ultimate Succession Hero": "#FFA500",
+    "Ultimate Succession": "#FF8C00",
+    "Globetrotters": "#2E8B57",
+    "Champions Mastery": "#00008B",
+    "Mode Mastery": "#8A2BE2",
+    "Squad Battles Mastery": "#7B68EE",
+    "Rivals Mastery": "#4B0082",
+    "Thunderstruck ICON": "#FF0000",
+    "Thunderstruck": "#DC143C",
+    "Winter Champions": "#00BFFF",
+    "FC Pro Live": "#00CED1",
+    "On This Day Icon": "#FFD700",
+    "Track Stars Hero": "#C71585",
+    "Track Stars": "#800000",
+    "Centurions Icon": "#8B0000",
+    "Ballon d'Or": "#FFD700",
+    "Centurions Evolution": "#8B4513",
+    "Centurions": "#D2691E",
+    "On This Day Hero": "#FF4500",
+    "Trailblazers": "#B22222",
+    "Liga F POTM": "#FF69B4",
+    "Bundesliga POTM": "#DC143C",
+    "Purple Evo": "#800080",
+    "Total Rush": "#FF4500",
+    "Dynamic Duos": "#00FA9A",
+    "UCL Road to the Final": "#0000CD",
+    "Legendary": "#FFD700",
+    "Standard": "#808080",
+    "Winter Wildcards": "#A52A2A",
+    "POTM EREDIVISIE": "#008000",
+    "POTM SERIE A": "#0000FF",
+    "UECL Road to the Knockouts": "#8B008B",
+    "Ultimate": "#FF4500",
+    "Premium": "#FFD700",
+    "Vintage": "#8B4513",
+    "Epic": "#DC143C",
+    "World Tour": "#4169E1",
+    "Moments": "#DAA520",
+    "SQUAD FOUNDATIONS": "#2F4F4F",
+    "POTM LALIGA EA SPORTS": "#8B0000",
+    "POTM Ligue 1": "#1E90FF",
+    "UT Heroes": "#FF8C00",
+    "SHOWDOWN": "#FF4500",
+    "Showdown Plus": "#DC143C",
+    "Select": "#4B0082",
+    "Flashback Player": "#8B4513",
+    "UCL Road to the Knockouts": "#0000CD",
+    "UEL Road to the Knockouts": "#FF4500",
+    "POTM Premier League": "#800080",
+    "POTM Bundesliga": "#DC143C",
+    "UWCL Road to the Knockouts": "#1E90FF",
+    "End Of An Era": "#4682B4",
+    "Squad Building Challenge": "#00CED1",
+    "Ones to Watch": "#FF8C00",
+    "Ultimate Team Champions": "#FFD700",
+    "Ultimate Team Champions Pro": "#FF4500",
+    "Pro Player": "#DAA520",
+    "Domestic Man of the Match": "#B22222",
+    "Team of the Year": "#FFD700",
+    "Evolutions III": "#008080",
+    "Evolutions II": "#20B2AA",
+    "Evolutions I": "#2E8B57",
+    "In-Progress Evolution": "#808000",
+    "Prime Hero": "#FF8C00",
+    "Origin Hero": "#FF4500",
+    "Icon": "#FFD700",
+    "Team of the Week": "#000000",
+    "Rare": "#FF69B4",
+    "Common": "#C0C0C0",
+    "Bronze Common": "#CD853F",
+    "Bronze Rare": "#8B4513",
+    "Silver Common": "#C0C0C0",
+    "Silver Rare": "#A9A9A9"
+  };
   const [photoUrls, setPhotoUrls] = useState([]);
   const [participantsData, setParticipantsData] = useState({});
 
@@ -129,7 +227,27 @@ const TournamentDetails = ({ route }) => {
   };
   
   
-  
+  useEffect(() => {
+    if (!tournament.tournamentId) return;
+
+    const teamRulesRef = ref(
+      database,
+      `companies/xRDCyXloboXp4AiYC6GGnnHoFNy2/Tournaments/${tournament.tournamentId}/teamRules`
+    );
+
+    const unsubscribe = onValue(teamRulesRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const rulesArray = Object.values(snapshot.val());
+        setTeamRules(rulesArray);
+      } else {
+        console.log("Firebase'de teamRules bulunamadı.");
+        setTeamRules([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [tournament.tournamentId]);
   
   
   useEffect(() => {
@@ -984,15 +1102,29 @@ const createNextRound = async (currentRoundIndex) => {
 
 
         <View style={styles.rulesContainer}>
-          {/* Takım Kuralları */}
-          {tournament.teamRules && tournament.teamRules.length > 0 && (
-            <>
-              <Text style={styles.rulesTitle}>Team Rules:</Text>
-              {tournament.teamRules.map((rule, index) => (
-                <Text key={index} style={styles.rulesText}>• {rule}</Text>
-              ))}
-            </>
+  
+  
+        {teamRules.length === 0 ? (
+        <Text style={styles.noRulesText}>Takım kuralları bulunmamaktadır.</Text>
+      ) : (
+        <FlatList
+          data={teamRules}
+          keyExtractor={(item, index) => index.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View
+              style={[
+                styles.card,
+                { borderColor: cardThemeColors[item.card] || '#FFF', shadowColor: cardThemeColors[item.card] || '#FFF' }
+              ]}
+            >
+              <Text style={styles.cardText}>{item.card}</Text>
+              <Text style={styles.countText}>x{item.count}</Text>
+            </View>
           )}
+        />
+      )}
         </View>
 
         {/* 📌 **Turnuva Kuralları & Takım Kuralları Bölümü** */}
@@ -1455,6 +1587,36 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     marginVertical: 5,
+  },
+  noRulesText: {
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  card: {
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 2,
+    marginHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: Dimensions.get('window').width * 0.3, // Kart genişliği
+    backgroundColor: '#1e1e1e',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.7,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  cardText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textAlign: 'center',
+  },
+  countText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#ffcc00',
   },
   sendButton: {
     backgroundColor: '#000',

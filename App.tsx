@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { ActivityIndicator, View, TouchableOpacity, Text, StyleSheet, Image, Settings } from 'react-native';
 import { Icon } from 'react-native-elements';
+import { useNavigation } from '@react-navigation/native';
 import LoginScreen from './LoginScreen';
 import SignupScreen from './SignupScreen';
 import CompanySignUpScreen from './CompanySignupScreen';
@@ -23,6 +24,7 @@ import Tournaments from './Tournaments';
 import ProductDetails from './ProductDetails';
 import MyTournaments from './MyTournaments'; // MyTournaments sayfasını içeri aktar
 import ShufflePage from './ShufflePage';
+import Home from './HomeScreen';
 import MyClubPage from './MyClubPage2';
 import CompanyHomePage from './CompanyHomePage'; // Şirketler için HomePage Component
 import SharePage from './ShufflePageFolder/TampleSharingCardThema'
@@ -32,6 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { database } from './firebase';
 import CreaeteTeam from "./formasionTryMain";
 import 'expo-dev-client';
+import SwipeableCards from './ShufflePage';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -172,7 +175,7 @@ function HomeTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={userType === 'companies' ? ShufflePage : ShufflePage}
+        component={userType === 'companies' ? CompanyHomePage : CompanyHomePage}
         options={{
           tabBarLabel: 'Home',
         }}
@@ -267,7 +270,7 @@ export default function App() {
           <Stack.Screen
             name="HomeTabs"
             component={HomeTabs}
-            options={{
+            options={({ navigation }) => ({
               headerShown: true,
               headerTitle: '', // Başlığı tamamen kaldırır
               headerLeft: () => (
@@ -279,6 +282,14 @@ export default function App() {
                   />
                 </TouchableOpacity>
               ),
+              headerRight: () => ( // Sağ üst köşeye buton ekleme
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={() => navigation.navigate("Home")} // ShufflePage sayfasına yönlendir
+                >
+                  <Ionicons name="shuffle" size={28} color="#FFF" />
+                </TouchableOpacity>
+              ),
               headerBackground: () => (
                 <Image
                   source={require('./assets/downpanel.png')} // Arka plan
@@ -286,7 +297,7 @@ export default function App() {
                   resizeMode="cover"
                 />
               ),
-            }}
+            })}
           />
 
           <Stack.Screen
@@ -329,6 +340,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 20,
+  },
+  headerButton: {
+    marginRight: 15,
+    padding: 10,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   message: {
     fontSize: 16,

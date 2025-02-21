@@ -5,6 +5,7 @@ import {
   StyleSheet,
   FlatList,
   ImageBackground,
+  Image,
   Dimensions,
   TouchableOpacity,
   Modal,
@@ -55,11 +56,13 @@ export default function CompanyHomePage() {
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>DISCOUNT SALE!</Text>
-        <Text style={styles.headerSubtitle}>Check out the various cards that have discounts.</Text>
-        <Text style={styles.headerDiscount}>
-          UP TO <Text style={styles.discountPercentage}>70%</Text>
-        </Text>
+      <Image
+            ref={videoRef}
+            source={require('./assets/BannerToRivals.png')} // Your video file
+            style={styles.video}
+            resizeMode="cover"
+
+          />
       </View>
 
       {/* Live Chances Section */}
@@ -319,7 +322,7 @@ const styles = StyleSheet.create({
   },
   video: {
     width: screenWidth,
-    height: 100,
+    height: 200,
     borderRadius: 10,
     overflow: 'hidden',
   },
