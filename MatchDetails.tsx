@@ -173,31 +173,31 @@ useEffect(() => {
     if (user2Id) fetchPlayerStats(user2Id, setPlayer2Stats);
 }, [user1Id, user2Id]);
 
-
 const fetchUserTeam = async (userId, setTeam, setFormation) => {
   try {
-      const db = getDatabase();
-      const teamRef = dbRef(db, `users/${userId}/MyTeam`);
-      const snapshot = await get(teamRef);
+    const db = getDatabase();
+    const teamRef = dbRef(db, `users/${userId}/MyTeam`);
+    const snapshot = await get(teamRef);
 
-      if (snapshot.exists()) {
-          const teamData = snapshot.val();
-          
-          const fullSquad = [
-              ...(teamData.squad?.defense || []),
-              ...(teamData.squad?.midfield || []),
-              ...(teamData.squad?.forwards || []),
-              ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : [])
-          ];
+    if (snapshot.exists()) {
+      const teamData = snapshot.val();
 
-          setTeam(fullSquad); 
-          setFormation(teamData.formation || "4-4-2");
-      } else {
-          setTeam([]);
-      }
-  } catch (error) {
-      console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
+      // 📌 **Oyuncuları Doğru Formasyon Sırasına Göre Diz**
+      const fullSquad = [
+        ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : []), // **1 Kaleci**
+        ...(teamData.squad?.defense || []), // **Defans Oyuncuları**
+        ...(teamData.squad?.midfield || []), // **Orta Saha Oyuncuları**
+        ...(teamData.squad?.forwards || []) // **Forvetler**
+      ];
+
+      setTeam(fullSquad);  // 📌 **Doğru sırayla takımı güncelle**
+      setFormation(teamData.formation || "4-4-2");
+    } else {
       setTeam([]);
+    }
+  } catch (error) {
+    console.error("❌ Kullanıcı takım bilgileri alınırken hata oluştu:", error);
+    setTeam([]);
   }
 };
 
@@ -212,13 +212,13 @@ const fetchOpponentTeam = async (opponentId, setOpponentTeam, setOpponentFormati
       if (snapshot.exists()) {
           const teamData = snapshot.val();
           
-          // 🔥 Doğru şekilde set et
           const fullSquad = [
-              ...(teamData.squad?.defense || []),
-              ...(teamData.squad?.midfield || []),
-              ...(teamData.squad?.forwards || []),
-              ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : [])
-          ];
+            ...(teamData.squad?.goalkeeper ? [teamData.squad.goalkeeper] : []), // ✅ 1. Kale
+            ...(teamData.squad?.defense || []), // ✅ 2. Defans
+            ...(teamData.squad?.midfield || []), // ✅ 3. Orta Saha
+            ...(teamData.squad?.forwards || []) // ✅ 4. Forvetler
+        ];
+        
 
           console.log("✅ Rakip Takım: ", fullSquad);
           setOpponentTeam(fullSquad); // 🔥 Rakip takımı buraya set ediyoruz!
@@ -267,79 +267,554 @@ useEffect(() => {
   };
 
 
-  const teamPlayers = {
-    [user1]: [
-      { id: 1, name: "GK", top: 80, left: 43 },  // Kaleci
-      { id: 2, name: "RB", top: 55, left: 83 },  // Sağ Bek
-      { id: 3, name: "RCB", top: 65, left: 58 }, // Sağ Stoper
-      { id: 4, name: "LCB", top: 65, left: 28 }, // Sol Stoper
-      { id: 5, name: "LB", top: 55, left: 3 },   // Sol Bek
-      { id: 6, name: "CDM", top: 50, left: 43 }, // Ön Libero
-      { id: 7, name: "RCM", top: 35, left: 58 }, // Sağ Merkez Orta Saha
-      { id: 8, name: "LCM", top: 35, left: 28 }, // Sol Merkez Orta Saha
-      { id: 9, name: "RW", top: 20, left: 73 },  // Sağ Kanat
-      { id: 10, name: "ST", top: 15, left: 43 }, // Forvet
-      { id: 11, name: "LW", top: 20, left: 13 }, // Sol Kanat
+  const formations = {
+    // ---------- 3 ATB (3 Defanslı Formasyonlar) ----------
+  
+    // 3-1-4-2
+    "3-1-4-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 3 Defans
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      // 1 DM
+      { position: "CDM", top: 55, left: 50 },
+      // 4 Orta Saha
+      { position: "RM",  top: 45, left: 80 },
+      { position: "RCM", top: 45, left: 63 },
+      { position: "LCM", top: 45, left: 37 },
+      { position: "LM",  top: 45, left: 20 },
+      // 2 Forvet
+      { position: "ST",  top: 25, left: 40 },
+      { position: "ST",  top: 25, left: 60 },
     ],
-    [user2]: [
-      { id: 1, name: "GK", top: 80, left: 43 },  // Kaleci
-      { id: 2, name: "RB", top: 55, left: 83 },  // Sağ Bek
-      { id: 3, name: "RCB", top: 65, left: 58 }, // Sağ Stoper
-      { id: 4, name: "LCB", top: 65, left: 28 }, // Sol Stoper
-      { id: 5, name: "LB", top: 55, left: 3 },   // Sol Bek
-      { id: 6, name: "CDM", top: 50, left: 43 }, // Ön Libero
-      { id: 7, name: "RCM", top: 35, left: 58 }, // Sağ Merkez Orta Saha
-      { id: 8, name: "LCM", top: 35, left: 28 }, // Sol Merkez Orta Saha
-      { id: 9, name: "RW", top: 20, left: 73 },  // Sağ Kanat
-      { id: 10, name: "ST", top: 15, left: 43 }, // Forvet
-      { id: 11, name: "LW", top: 20, left: 13 }, // Sol Kanat
+  
+    // 3-4-1-2
+    "3-4-1-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 3 Defans
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      // 4 Orta Saha (daha çok kanatlı)
+      { position: "RM",  top: 55, left: 80 },
+      { position: "RCM", top: 55, left: 63 },
+      { position: "LCM", top: 55, left: 37 },
+      { position: "LM",  top: 55, left: 20 },
+      // 1 Ofansif Orta Saha
+      { position: "CAM", top: 45, left: 50 },
+      // 2 Forvet
+      { position: "ST",  top: 25, left: 40 },
+      { position: "ST",  top: 25, left: 60 },
+    ],
+  
+    // 3-4-2-1
+    "3-4-2-1": [
+      { position: "GK",  top: 80, left: 50 },
+      // 3 Defans
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      // 4 Orta Saha
+      { position: "RM",  top: 55, left: 80 },
+      { position: "RCM", top: 55, left: 60 },
+      { position: "LCM", top: 55, left: 40 },
+      { position: "LM",  top: 55, left: 20 },
+      // 2 Ofansif Orta Saha
+      { position: "RAM", top: 45, left: 60 },
+      { position: "LAM", top: 45, left: 40 },
+      // 1 Forvet
+      { position: "ST",  top: 25, left: 50 },
+    ],
+  
+    // 3-4-3
+    "3-4-3": [
+      { position: "GK",  top: 80, left: 50 },
+      // 3 Defans
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      // 4 Orta Saha
+      { position: "RM",  top: 50, left: 80 },
+      { position: "RCM", top: 50, left: 63 },
+      { position: "LCM", top: 50, left: 37 },
+      { position: "LM",  top: 50, left: 20 },
+      // 3 Forvet (geniş)
+      { position: "RW",  top: 25, left: 75 },
+      { position: "ST",  top: 20, left: 50 },
+      { position: "LW",  top: 25, left: 25 },
+    ],
+  
+    // 3-5-2
+    "3-5-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 3 Defans
+      { position: "RCB", top: 65, left: 63 },
+      { position: "CB",  top: 65, left: 50 },
+      { position: "LCB", top: 65, left: 37 },
+      // 5 Orta Saha
+      { position: "RWM", top: 50, left: 85 },
+      { position: "RCM", top: 50, left: 63 },
+      { position: "CM",  top: 50, left: 50 },
+      { position: "LCM", top: 50, left: 37 },
+      { position: "LWM", top: 50, left: 15 },
+      // 2 Forvet
+      { position: "ST",  top: 25, left: 40 },
+      { position: "ST",  top: 25, left: 60 },
+    ],
+  
+    // ---------- 4 ATB (4 Defanslı Formasyonlar) ----------
+  
+    // 4-1-2-1-2
+    "4-1-2-1-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 1 DM
+      { position: "CDM", top: 57, left: 50 },
+      // 2 CM
+      { position: "RCM", top: 47, left: 60 },
+      { position: "LCM", top: 47, left: 40 },
+      // 1 CAM
+      { position: "CAM", top: 37, left: 50 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 42 },
+      { position: "ST",  top: 20, left: 58 },
+    ],
+  
+    // 4-1-2-1-2 (2)
+    "4-1-2-1-2 (2)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 1 DM
+      { position: "CDM", top: 57, left: 50 },
+      // 2 CM (biraz daha geniş)
+      { position: "RCM", top: 47, left: 65 },
+      { position: "LCM", top: 47, left: 35 },
+      // 1 CAM
+      { position: "CAM", top: 37, left: 50 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 42 },
+      { position: "ST",  top: 20, left: 58 },
+    ],
+  
+    // 4-1-3-2
+    "4-1-3-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 1 DM
+      { position: "CDM", top: 57, left: 50 },
+      // 3 Orta Saha (daha ofansif)
+      { position: "RCM", top: 47, left: 60 },
+      { position: "CM",  top: 47, left: 50 },
+      { position: "LCM", top: 47, left: 40 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 43 },
+      { position: "ST",  top: 20, left: 57 },
+    ],
+  
+    // 4-1-4-1
+    "4-1-4-1": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 1 DM
+      { position: "CDM", top: 57, left: 50 },
+      // 4 Orta Saha (daha düz)
+      { position: "RM",  top: 47, left: 80 },
+      { position: "RCM", top: 47, left: 60 },
+      { position: "LCM", top: 47, left: 40 },
+      { position: "LM",  top: 47, left: 20 },
+      // 1 Forvet
+      { position: "ST",  top: 20, left: 50 },
+    ],
+  
+    // 4-2-1-3
+    "4-2-1-3": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 2 DM
+      { position: "RDM",  top: 57, left: 60 },
+      { position: "LDM",  top: 57, left: 40 },
+      // 1 AM/CM
+      { position: "CAM",  top: 47, left: 50 },
+      // 3 Forvet
+      { position: "RW",   top: 25, left: 75 },
+      { position: "ST",   top: 20, left: 50 },
+      { position: "LW",   top: 25, left: 25 },
+    ],
+  
+    // 4-2-2-2
+    "4-2-2-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 2 DM
+      { position: "RDM",  top: 57, left: 60 },
+      { position: "LDM",  top: 57, left: 40 },
+      // 2 AM (geniş)
+      { position: "RAM",  top: 47, left: 60 },
+      { position: "LAM",  top: 47, left: 40 },
+      // 2 Forvet
+      { position: "ST",   top: 20, left: 42 },
+      { position: "ST",   top: 20, left: 58 },
+    ],
+  
+    // 4-2-3-1
+    "4-2-3-1": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 2 DM
+      { position: "RDM",  top: 57, left: 60 },
+      { position: "LDM",  top: 57, left: 40 },
+      // 3 Ofansif Orta Saha
+      { position: "RAM",  top: 47, left: 60 },
+      { position: "CAM",  top: 47, left: 50 },
+      { position: "LAM",  top: 47, left: 40 },
+      // 1 Forvet
+      { position: "ST",   top: 20, left: 50 },
+    ],
+  
+    // 4-2-3-1 (2)
+    "4-2-3-1 (2)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 2 DM
+      { position: "RDM",  top: 57, left: 60 },
+      { position: "LDM",  top: 57, left: 40 },
+      // 3 Ofansif Orta Saha (daha geniş)
+      { position: "RAM",  top: 47, left: 70 },
+      { position: "CAM",  top: 47, left: 50 },
+      { position: "LAM",  top: 47, left: 30 },
+      // 1 Forvet
+      { position: "ST",   top: 20, left: 50 },
+    ],
+  
+    // 4-2-4
+    "4-2-4": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 2 Orta Saha
+      { position: "RCM",  top: 50, left: 60 },
+      { position: "LCM",  top: 50, left: 40 },
+      // 4 Forvet (2 merkez, 2 kanat gibi)
+      { position: "RW",   top: 30, left: 80 },
+      { position: "RS",   top: 25, left: 60 },
+      { position: "LS",   top: 25, left: 40 },
+      { position: "LW",   top: 30, left: 20 },
+    ],
+  
+    // 4-3-1-2
+    "4-3-1-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 3 Orta Saha
+      { position: "RCM", top: 55, left: 60 },
+      { position: "CM",  top: 55, left: 50 },
+      { position: "LCM", top: 55, left: 40 },
+      // 1 Ofansif Orta Saha
+      { position: "CAM", top: 45, left: 50 },
+      // 2 Forvet
+      { position: "ST",  top: 25, left: 42 },
+      { position: "ST",  top: 25, left: 58 },
+    ],
+  
+    // 4-3-2-1
+    "4-3-2-1": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 3 Orta Saha
+      { position: "RCM",  top: 55, left: 60 },
+      { position: "CM",   top: 55, left: 50 },
+      { position: "LCM",  top: 55, left: 40 },
+      // 2 Ofansif
+      { position: "RAM",  top: 45, left: 60 },
+      { position: "LAM",  top: 45, left: 40 },
+      // 1 Forvet
+      { position: "ST",   top: 25, left: 50 },
+    ],
+  
+    // 4-3-3
+    "4-3-3": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 3 Orta Saha
+      { position: "RCM", top: 50, left: 60 },
+      { position: "CM",  top: 50, left: 50 },
+      { position: "LCM", top: 50, left: 40 },
+      // 3 Forvet (kanat + santrfor)
+      { position: "RW",  top: 25, left: 75 },
+      { position: "ST",  top: 20, left: 50 },
+      { position: "LW",  top: 25, left: 25 },
+    ],
+  
+    // 4-3-3 (2)
+    "4-3-3 (2)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 3 Orta Saha (biraz daha geride)
+      { position: "RCM", top: 55, left: 60 },
+      { position: "CM",  top: 55, left: 50 },
+      { position: "LCM", top: 55, left: 40 },
+      // 3 Forvet
+      { position: "RW",  top: 25, left: 75 },
+      { position: "ST",  top: 20, left: 50 },
+      { position: "LW",  top: 25, left: 25 },
+    ],
+  
+    // 4-3-3 (3)
+    "4-3-3 (3)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 3 Orta Saha
+      { position: "RCM", top: 50, left: 58 },
+      { position: "CM",  top: 50, left: 43 },
+      { position: "LCM", top: 50, left: 28 },
+      // 3 Forvet
+      { position: "RW",  top: 25, left: 75 },
+      { position: "ST",  top: 20, left: 50 },
+      { position: "LW",  top: 25, left: 25 },
+    ],
+  
+    // 4-3-3 (4)
+    "4-3-3 (4)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 3 Orta Saha (biraz daha önde)
+      { position: "RCM", top: 45, left: 60 },
+      { position: "CM",  top: 45, left: 50 },
+      { position: "LCM", top: 45, left: 40 },
+      // 3 Forvet
+      { position: "RW",  top: 20, left: 75 },
+      { position: "ST",  top: 15, left: 50 },
+      { position: "LW",  top: 20, left: 25 },
+    ],
+  
+    // 4-4-1-1 (2)
+    "4-4-1-1 (2)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 4 Orta Saha
+      { position: "RM",  top: 50, left: 80 },
+      { position: "RCM", top: 50, left: 60 },
+      { position: "LCM", top: 50, left: 40 },
+      { position: "LM",  top: 50, left: 20 },
+      // 1 Ofansif Serbest (SS/CAM)
+      { position: "CF",  top: 35, left: 50 },
+      // 1 Forvet
+      { position: "ST",  top: 20, left: 50 },
+    ],
+  
+    // 4-4-2
+    "4-4-2": [
+      { position: "GK",  top: 80, left: 43 }, // Örnek koddaki gibi korunabilir
+      // 4 Defans
+      { position: "RB",  top: 65, left: 83 },
+      { position: "RCB", top: 70, left: 58 },
+      { position: "LCB", top: 70, left: 28 },
+      { position: "LB",  top: 65, left: 3 },
+      // 4 Orta Saha
+      { position: "RM",  top: 40, left: 78 },
+      { position: "RCM", top: 50, left: 58 },
+      { position: "LCM", top: 50, left: 28 },
+      { position: "LM",  top: 40, left: 8 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 55 },
+      { position: "ST",  top: 20, left: 30 },
+    ],
+  
+    // 4-4-2 (2)
+    "4-4-2 (2)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",  top: 65, left: 80 },
+      { position: "RCB", top: 70, left: 60 },
+      { position: "LCB", top: 70, left: 40 },
+      { position: "LB",  top: 65, left: 20 },
+      // 4 Orta Saha (daha düz sıralanmış)
+      { position: "RM",  top: 50, left: 75 },
+      { position: "RCM", top: 50, left: 60 },
+      { position: "LCM", top: 50, left: 40 },
+      { position: "LM",  top: 50, left: 25 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 43 },
+      { position: "ST",  top: 20, left: 57 },
+    ],
+  
+    // 4-5-1
+    "4-5-1": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 5 Orta Saha
+      { position: "RWM",  top: 50, left: 85 },
+      { position: "RCM",  top: 50, left: 65 },
+      { position: "CM",   top: 50, left: 50 },
+      { position: "LCM",  top: 50, left: 35 },
+      { position: "LWM",  top: 50, left: 15 },
+      // 1 Forvet
+      { position: "ST",   top: 25, left: 50 },
+    ],
+  
+    // 4-5-1 (2)
+    "4-5-1 (2)": [
+      { position: "GK",  top: 80, left: 50 },
+      // 4 Defans
+      { position: "RB",   top: 65, left: 80 },
+      { position: "RCB",  top: 70, left: 60 },
+      { position: "LCB",  top: 70, left: 40 },
+      { position: "LB",   top: 65, left: 20 },
+      // 5 Orta Saha (biraz farklı yayılım)
+      { position: "RM",   top: 50, left: 80 },
+      { position: "RCM",  top: 50, left: 60 },
+      { position: "LCM",  top: 50, left: 40 },
+      { position: "LM",   top: 50, left: 20 },
+      { position: "CAM",  top: 40, left: 50 }, 
+      // 1 Forvet
+      { position: "ST",   top: 25, left: 50 },
+    ],
+  
+    // ---------- 5 ATB (5 Defanslı Formasyonlar) ----------
+  
+    // 5-2-1-2
+    "5-2-1-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 5 Defans (Wing-back'ler biraz önde)
+      { position: "RWB", top: 60, left: 85 },
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      { position: "LWB", top: 60, left: 15 },
+      // 2 Orta (merkez)
+      { position: "RCM", top: 50, left: 60 },
+      { position: "LCM", top: 50, left: 40 },
+      // 1 Ofansif Orta Saha
+      { position: "CAM", top: 40, left: 50 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 42 },
+      { position: "ST",  top: 20, left: 58 },
+    ],
+  
+    // 5-2-3
+    "5-2-3": [
+      { position: "GK",  top: 80, left: 50 },
+      // 5 Defans (3 stoper + 2 kanat bek)
+      { position: "RWB", top: 60, left: 85 },
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      { position: "LWB", top: 60, left: 15 },
+      // 2 Orta
+      { position: "RCM", top: 50, left: 60 },
+      { position: "LCM", top: 50, left: 40 },
+      // 3 Forvet (RW, ST, LW)
+      { position: "RW",  top: 25, left: 75 },
+      { position: "ST",  top: 20, left: 50 },
+      { position: "LW",  top: 25, left: 25 },
+    ],
+  
+    // 5-3-2
+    "5-3-2": [
+      { position: "GK",  top: 80, left: 50 },
+      // 5 Defans
+      { position: "RWB", top: 60, left: 85 },
+      { position: "RCB", top: 68, left: 63 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 37 },
+      { position: "LWB", top: 60, left: 15 },
+      // 3 Orta Saha
+      { position: "RCM", top: 50, left: 60 },
+      { position: "CM",  top: 50, left: 50 },
+      { position: "LCM", top: 50, left: 40 },
+      // 2 Forvet
+      { position: "ST",  top: 20, left: 43 },
+      { position: "ST",  top: 20, left: 57 },
+    ],
+  
+    // 5-4-1
+    "5-4-1": [
+      { position: "GK",  top: 80, left: 50 },
+      // 5 Defans
+      { position: "RWB", top: 60, left: 85 },
+      { position: "RCB", top: 68, left: 60 },
+      { position: "CB",  top: 68, left: 50 },
+      { position: "LCB", top: 68, left: 40 },
+      { position: "LWB", top: 60, left: 15 },
+      // 4 Orta Saha (daha düz)
+      { position: "RM",  top: 50, left: 75 },
+      { position: "RCM", top: 50, left: 60 },
+      { position: "LCM", top: 50, left: 40 },
+      { position: "LM",  top: 50, left: 25 },
+      // 1 Forvet
+      { position: "ST",  top: 20, left: 50 },
     ],
   };
-
-
-  const formations = {
-    "4-4-2": [
-        { position: "GK", top: 80, left: 43 },
-        { position: "RB", top: 55, left: 83 },
-        { position: "RCB", top: 65, left: 58 },
-        { position: "LCB", top: 65, left: 28 },
-        { position: "LB", top: 55, left: 3 },
-        { position: "RM", top: 40, left: 78 },
-        { position: "RCM", top: 50, left: 58 },
-        { position: "LCM", top: 50, left: 28 },
-        { position: "LM", top: 40, left: 8 },
-        { position: "ST", top: 20, left: 55 },
-        { position: "ST", top: 20, left: 30 },
-    ],
-    "4-3-3": [
-        { position: "GK", top: 80, left: 43 },
-        { position: "RB", top: 55, left: 83 },
-        { position: "RCB", top: 65, left: 58 },
-        { position: "LCB", top: 65, left: 28 },
-        { position: "LB", top: 55, left: 3 },
-        { position: "CDM", top: 50, left: 43 },
-        { position: "RCM", top: 40, left: 58 },
-        { position: "LCM", top: 40, left: 28 },
-        { position: "RW", top: 20, left: 75 },
-        { position: "ST", top: 15, left: 43 },
-        { position: "LW", top: 20, left: 10 },
-    ],
-    "3-5-2": [
-        { position: "GK", top: 80, left: 43 },
-        { position: "RCB", top: 60, left: 65 },
-        { position: "CB", top: 60, left: 43 },
-        { position: "LCB", top: 60, left: 25 },
-        { position: "RWB", top: 50, left: 85 },
-        { position: "LWB", top: 50, left: 5 },
-        { position: "RCM", top: 35, left: 66 },
-        { position: "CDM", top: 40, left: 43 },
-        { position: "LCM", top: 35, left: 20 },
-        { position: "ST", top: 15, left: 55 },
-        { position: "ST", top: 15, left: 30 },
-    ],
-};
-
-
+  
+  
 
   const [user1ProfileImage, setUser1ProfileImage] = useState(null);
   const [user2ProfileImage, setUser2ProfileImage] = useState(null);
@@ -683,6 +1158,15 @@ const takePhotoAndUpload = async (folder) => {
         Alert.alert('Error', error.message || 'Failed to upload the photo.');
     }
 };
+
+const getPlayerPositions = (formation, team) => {
+  const formationPositions = formations[formation] || [];
+  return formationPositions.map((pos, index) => ({
+    ...pos, 
+    player: team[index] || null, // Takımdaki oyuncuları sırayla yerleştiriyoruz
+  }));
+};
+
 const getMatchSummary = () => {
   const goalDifference = Math.abs(team1Score - team2Score);
   const totalTournamentsUser1 = player1Tournaments;
@@ -855,24 +1339,29 @@ An intense match that could have gone either way!`;
 
     {/* 📌 Saha Görseli ve Oyuncular */}
     <View style={styles.lineupContainer}>
-                    <Image source={require("./assets/patchh.png")} style={styles.lineupImage} />
+                    <Image source={require("./assets/potch.png")} style={styles.lineupImage} />
                     {userTeam.length > 0 ? (
-    userTeam.map((player, index) => (
-        <View key={index} style={[styles.playerPosition, { 
-            top: `${formations[formation][index]?.top}%`, 
-            left: `${formations[formation][index]?.left}%` 
-        }]}> 
-            {/* 🏆 Oyuncu Kartı ve Overall Puanı */}
-            <View style={styles.playerCard}>
-                <Image source={{ uri: player?.images?.PlayerCard }} style={styles.playerImage} />
-                <Text style={styles.overallText}>{player?.player_info?.Overall || "??"}</Text>
-            </View>
-            <Text style={styles.playerText}>{player?.player_info?.Name || "Unknown"}</Text>
-        </View>
-    ))
-) : (
-    <Text style={styles.noPlayerText}>THERE IS NO PLAYER ON TEAM</Text>
-)}
+ {getPlayerPositions(formation, userTeam).map((pos, index) => (
+  <View key={index} style={[
+      styles.playerPosition, 
+      {
+          top: `${pos.top}%`, 
+          left: `${pos.left}%`
+      }
+  ]}>
+    {pos.player ? (
+      <View style={styles.playerCard}>
+        <Image source={{ uri: pos.player.images?.PlayerCard }} style={styles.playerImage} />
+        <Text style={styles.overallText}>{pos.player.player_info?.Overall || "??"}</Text>
+      </View>
+    ) : (
+      <Text style={styles.noPlayerText}>?</Text>
+    )}
+    <Text style={styles.playerText}>{pos.player?.player_info?.Name || "Unknown"}</Text>
+  </View>
+))}
+
+
 
 
 
